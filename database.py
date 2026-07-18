@@ -1,215 +1,112 @@
-import sqlite3
-
-
-BANCO = "pastelaria.db"
-
+import psycopg2
+import os
 
 
 def conectar():
 
-    return sqlite3.connect(BANCO)
+    DATABASE_URL = os.environ.get("DATABASE_URL")
 
-
-
+    return psycopg2.connect(
+        DATABASE_URL
+    )
 
 
 def criar_banco():
 
     conn = conectar()
-
     cursor = conn.cursor()
 
-
-
-
-
-    # USUÁRIOS
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios(
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
 
-        nome TEXT NOT NULL,
+        nome VARCHAR(100),
 
-        senha TEXT NOT NULL,
+        senha VARCHAR(100),
 
-        nivel TEXT NOT NULL
+        nivel VARCHAR(20)
 
     )
     """)
 
-
-
-
-
-
-
-    # PRODUTOS
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS produtos(
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
 
-        nome TEXT NOT NULL,
+        nome VARCHAR(100),
 
-        categoria TEXT NOT NULL
+        categoria VARCHAR(50)
 
     )
     """)
 
-
-
-
-
-
-
-    # CONTROLE DO DIA
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS controle(
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
 
+        data DATE,
 
-        data TEXT NOT NULL,
+        usuario VARCHAR(100),
 
+        caixa_inicial FLOAT,
 
-        usuario TEXT,
+        caixa_final FLOAT,
 
+        maquina1 FLOAT,
 
-        caixa_inicial REAL DEFAULT 0,
+        maquina2 FLOAT,
 
+        maquina3 FLOAT,
 
-        caixa_final REAL DEFAULT 0,
+        maquina4 FLOAT,
 
+        dinheiro FLOAT,
 
-        maquina1 REAL DEFAULT 0,
+        pix FLOAT,
 
-
-        maquina2 REAL DEFAULT 0,
-
-
-        maquina3 REAL DEFAULT 0,
-
-
-        maquina4 REAL DEFAULT 0,
-
-
-        dinheiro REAL DEFAULT 0,
-
-
-        pix REAL DEFAULT 0,
-
-
-        status TEXT DEFAULT 'ABERTO'
+        status VARCHAR(20)
 
     )
     """)
 
-
-
-
-
-
-
-
-    # PRODUÇÃO DO DIA
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS producao(
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
+        id SERIAL PRIMARY KEY,
 
         controle_id INTEGER,
 
-
         produto_id INTEGER,
 
-
-        quantidade INTEGER DEFAULT 0
+        quantidade INTEGER
 
     )
     """)
 
-
-
-
-
-
-
-
-    # ESTOQUE / FECHAMENTO
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS estoque(
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
+        id SERIAL PRIMARY KEY,
 
         controle_id INTEGER,
 
-
         produto_id INTEGER,
 
+        quantidade_final INTEGER,
 
-        quantidade_final INTEGER DEFAULT 0,
-
-
-        perda INTEGER DEFAULT 0
+        perda INTEGER
 
     )
     """)
 
 
-
-
-
-
-
-
-
-    # ADMIN PADRÃO
-
-
-    cursor.execute("""
-    SELECT *
-
-    FROM usuarios
-
-    WHERE nome='admin'
-    """)
-
-
-
-    admin = cursor.fetchone()
-
-
-
-    if admin is None:
-
-
-        cursor.execute("""
-        INSERT INTO usuarios
-
-        (nome, senha, nivel)
-
-        VALUES (?,?,?)
-
-        """,
-        (
-            "admin",
-            "123",
-            "admin"
-        ))
-
-
-
-
-
-
     conn.commit()
-
     conn.close()
