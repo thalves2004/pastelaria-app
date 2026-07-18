@@ -115,6 +115,27 @@ def criar_banco():
             "admin"
         ))
 
+    cursor.execute("""
+    SELECT * FROM usuarios
+    WHERE nome='admin'
+    """)
+
+    admin = cursor.fetchone()
+
+
+    if admin is None:
+
+        cursor.execute("""
+        INSERT INTO usuarios
+        (nome, senha, nivel)
+
+        VALUES (%s,%s,%s)
+        """,
+        (
+            "admin",
+            "1234",
+            "admin"
+        ))
 
     conn.commit()
     conn.close()
