@@ -69,7 +69,6 @@ def login():
 # DASHBOARD
 # ==========================
 
-
 @app.route("/dashboard")
 def dashboard():
 
@@ -83,8 +82,21 @@ def dashboard():
     cursor = conn.cursor()
 
 
+    # Busca o último caixa
     cursor.execute("""
-    SELECT *
+    SELECT
+        id,
+        data,
+        usuario,
+        caixa_inicial,
+        caixa_final,
+        maquina1,
+        maquina2,
+        maquina3,
+        maquina4,
+        dinheiro,
+        pix,
+        status
 
     FROM controle
 
@@ -98,7 +110,24 @@ def dashboard():
     ultimo = cursor.fetchone()
 
 
+
+    # Verifica se existe caixa aberto
+    cursor.execute("""
+    SELECT COUNT(*)
+
+    FROM controle
+
+    WHERE UPPER(status)='ABERTO'
+
+    """)
+
+
+    caixa_aberto = cursor.fetchone()[0] > 0
+
+
+
     conn.close()
+
 
 
     return render_template(
@@ -107,15 +136,11 @@ def dashboard():
 
         usuario=session["usuario"],
 
-        ultimo=ultimo
+        ultimo=ultimo,
+
+        caixa_aberto=caixa_aberto
 
     )
-
-
-
-
-
-
 # ==========================
 # ABERTURA DO CAIXA
 # ==========================
@@ -159,7 +184,6 @@ def abertura():
 
 
     if request.method == "POST":
-
 
         data = request.form["data"]
 
