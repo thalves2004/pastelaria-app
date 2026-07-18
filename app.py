@@ -805,21 +805,15 @@ def excluir_usuario(id):
 # RELATÓRIOS
 # ==========================
 
-
 @app.route("/relatorios")
 def relatorios():
 
-
     if "usuario" not in session:
-
         return redirect("/")
 
 
-
     if session["nivel"] != "admin":
-
         return redirect("/dashboard")
-
 
 
     conn = conectar()
@@ -827,15 +821,10 @@ def relatorios():
     cursor = conn.cursor()
 
 
-
     data_filtro = request.args.get("data")
 
 
-
-
-
     if data_filtro:
-
 
         cursor.execute("""
         SELECT *
@@ -851,9 +840,7 @@ def relatorios():
             data_filtro,
         ))
 
-
     else:
-
 
         cursor.execute("""
         SELECT *
@@ -865,17 +852,11 @@ def relatorios():
         """)
 
 
-
     controles = cursor.fetchall()
 
 
 
-
-
-
-
     resumo = []
-
 
 
 
@@ -895,10 +876,10 @@ def relatorios():
         producao.quantidade,
 
 
-        IFNULL(estoque.quantidade_final,0),
+        COALESCE(estoque.quantidade_final,0),
 
 
-        IFNULL(estoque.perda,0)
+        COALESCE(estoque.perda,0)
 
 
 
@@ -938,11 +919,7 @@ def relatorios():
 
 
 
-
-
-
         for produto in produtos:
-
 
 
             produzido = produto[2]
@@ -952,47 +929,30 @@ def relatorios():
             perda = produto[4]
 
 
-
             consumo = produzido - sobra - perda
 
 
-
             if consumo < 0:
-
                 consumo = 0
-
 
 
 
             resumo.append(
 
                 (
-
-                produto[0],
-
-                produto[1],
-
-                consumo,
-
-                perda,
-
-                produzido,
-
-                sobra
-
+                    produto[0],
+                    produto[1],
+                    consumo,
+                    perda,
+                    produzido,
+                    sobra
                 )
 
             )
 
 
 
-
-
-
-
-
     conn.close()
-
 
 
     return render_template(
@@ -1006,16 +966,6 @@ def relatorios():
         data_filtro=data_filtro
 
     )
-
-
-
-
-
-
-
-
-
-
 # ==========================
 # LOGOUT
 # ==========================
