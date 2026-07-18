@@ -33,8 +33,7 @@ def login():
 
                        FROM usuarios
 
-                       WHERE nome = %s
-                         AND senha = %s
+                       WHERE nome=%s AND senha=%s
 
                        """,
                        (
