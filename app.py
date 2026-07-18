@@ -171,31 +171,25 @@ def abertura():
             )
         )
 
-
-
         cursor.execute("""
-        INSERT INTO controle
+                       INSERT INTO controle
 
-        (
-        data,
-        usuario,
-        caixa_inicial,
-        status
-        )
+                       (data,
+                        usuario,
+                        caixa_inicial,
+                        status)
 
-        VALUES (%s,%s,%s,%s)
+                       VALUES (%s, %s, %s, %s) RETURNING id
 
-        """,
-        (
-            data,
-            session["usuario"],
-            caixa,
-            "ABERTO"
-        ))
+                       """,
+                       (
+                           data,
+                           session["usuario"],
+                           caixa,
+                           "ABERTO"
+                       ))
 
-
-
-        controle_id = cursor.lastrowid
+        controle_id = cursor.fetchone()[0]
 
 
 
