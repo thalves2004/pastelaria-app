@@ -4,21 +4,22 @@
 
 <head>
 
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <link rel="manifest" href="/static/manifest.json">
 
 <meta name="theme-color" content="#ff6600">
 
 <link rel="apple-touch-icon" href="/static/icon-192.png">
 
-<meta charset="UTF-8">
-
-<meta name="viewport" content="width=device-width, initial-scale=1">
-
 
 <title>PastelControl</title>
 
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
 
 <link rel="stylesheet" href="/static/style.css">
 
@@ -48,7 +49,7 @@
 </h3>
 
 
-<p class="text-muted mb-0">
+<p class="text-muted">
 
 Olá, {{usuario}} 👋
 
@@ -56,7 +57,6 @@ Olá, {{usuario}} 👋
 
 
 </div>
-
 
 
 <div style="font-size:45px">
@@ -74,16 +74,17 @@ Olá, {{usuario}} 👋
 
 <!-- MENU -->
 
-
 <div class="row g-3 mt-3">
 
 
 
 <div class="col-6">
 
+
 <a href="/abertura" class="text-decoration-none">
 
-<div class="card shadow card-menu bg-success text-white">
+
+<div class="card shadow card-menu bg-success text-white text-center p-3">
 
 
 <span style="font-size:35px">
@@ -98,7 +99,9 @@ Abertura
 
 </div>
 
+
 </a>
+
 
 </div>
 
@@ -106,11 +109,14 @@ Abertura
 
 
 
+
 <div class="col-6">
+
 
 <a href="/fechamento" class="text-decoration-none">
 
-<div class="card shadow card-menu bg-danger text-white">
+
+<div class="card shadow card-menu bg-danger text-white text-center p-3">
 
 
 <span style="font-size:35px">
@@ -125,7 +131,9 @@ Fechamento
 
 </div>
 
+
 </a>
+
 
 </div>
 
@@ -139,9 +147,11 @@ Fechamento
 
 <div class="col-6">
 
+
 <a href="/produtos" class="text-decoration-none">
 
-<div class="card shadow card-menu bg-warning">
+
+<div class="card shadow card-menu bg-warning text-dark text-center p-3">
 
 
 <span style="font-size:35px">
@@ -156,7 +166,9 @@ Produtos
 
 </div>
 
+
 </a>
+
 
 </div>
 
@@ -166,9 +178,11 @@ Produtos
 
 <div class="col-6">
 
+
 <a href="/usuarios" class="text-decoration-none">
 
-<div class="card shadow card-menu bg-primary text-white">
+
+<div class="card shadow card-menu bg-primary text-white text-center p-3">
 
 
 <span style="font-size:35px">
@@ -183,7 +197,9 @@ Usuários
 
 </div>
 
+
 </a>
+
 
 </div>
 
@@ -193,9 +209,11 @@ Usuários
 
 <div class="col-12">
 
+
 <a href="/relatorios" class="text-decoration-none">
 
-<div class="card shadow card-menu bg-dark text-white">
+
+<div class="card shadow card-menu bg-dark text-white text-center p-3">
 
 
 <span style="font-size:35px">
@@ -210,7 +228,9 @@ Relatórios
 
 </div>
 
+
 </a>
+
 
 </div>
 
@@ -228,14 +248,11 @@ Relatórios
 
 
 
-<!-- ÚLTIMO CONTROLE -->
-
-
-{% if ultimo %}
-
+<!-- ULTIMO CAIXA -->
 
 
 <div class="card shadow mt-4 p-4">
+
 
 
 <h5>
@@ -247,6 +264,9 @@ Relatórios
 
 <hr>
 
+
+
+{% if ultimo %}
 
 
 
@@ -282,26 +302,27 @@ Relatórios
 
 
 
-<div class="row">
+<div class="row mt-3">
+
 
 
 <div class="col-6">
 
 
-<div class="card p-3 bg-light">
+<div class="card bg-light p-3 text-center">
 
 
-💰 Inicial
+💰 Caixa inicial
 
 
 <br>
 
 
-<b>
+<strong>
 
-R$ {{ultimo[3]}}
+R$ {{ "%.2f"|format(ultimo[3]) }}
 
-</b>
+</strong>
 
 
 </div>
@@ -316,30 +337,34 @@ R$ {{ultimo[3]}}
 <div class="col-6">
 
 
-<div class="card p-3 bg-light">
+<div class="card bg-light p-3 text-center">
 
 
-💵 Final
+💵 Caixa final
 
 
 <br>
 
 
-<b>
+<strong>
 
 
-{% if ultimo[11] == "FECHADO" %}
+{% if ultimo[4] and ultimo[4] > 0 %}
 
-R$ {{ultimo[4]}}
+
+R$ {{ "%.2f"|format(ultimo[4]) }}
+
 
 {% else %}
 
-Aberto
+
+Ainda aberto
+
 
 {% endif %}
 
 
-</b>
+</strong>
 
 
 </div>
@@ -348,7 +373,9 @@ Aberto
 </div>
 
 
+
 </div>
+
 
 
 
@@ -358,10 +385,9 @@ Aberto
 
 
 
+<!-- STATUS CORRETO -->
 
-
-{% if ultimo[11] == "FECHADO" %}
-
+{% if ultimo[11]|upper == "FECHADO" %}
 
 
 <div class="alert alert-danger text-center">
@@ -373,9 +399,7 @@ Aberto
 </div>
 
 
-
 {% else %}
-
 
 
 <div class="alert alert-success text-center">
@@ -387,13 +411,9 @@ Aberto
 </div>
 
 
-
 {% endif %}
 
 
-
-
-</div>
 
 
 
@@ -401,15 +421,22 @@ Aberto
 
 
 
-<div class="alert alert-warning mt-4">
+<div class="alert alert-warning text-center">
 
-Nenhum controle realizado.
+
+Nenhum caixa registrado.
+
 
 </div>
 
 
 
 {% endif %}
+
+
+
+</div>
+
 
 
 
@@ -427,7 +454,9 @@ Nenhum controle realizado.
 
 
 
+
 </div>
+
 
 
 </body>
