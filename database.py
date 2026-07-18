@@ -6,9 +6,15 @@ def conectar():
 
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    return psycopg2.connect(
-        DATABASE_URL
-    )
+    if DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace(
+            "postgres://",
+            "postgresql://",
+            1
+        )
+
+    return psycopg2.connect(DATABASE_URL)
+
 
 
 def criar_banco():
@@ -21,12 +27,9 @@ def criar_banco():
     CREATE TABLE IF NOT EXISTS usuarios(
 
         id SERIAL PRIMARY KEY,
-
-        nome VARCHAR(100),
-
-        senha VARCHAR(100),
-
-        nivel VARCHAR(20)
+        nome VARCHAR(100) NOT NULL,
+        senha VARCHAR(100) NOT NULL,
+        nivel VARCHAR(20) NOT NULL
 
     )
     """)
@@ -36,10 +39,8 @@ def criar_banco():
     CREATE TABLE IF NOT EXISTS produtos(
 
         id SERIAL PRIMARY KEY,
-
-        nome VARCHAR(100),
-
-        categoria VARCHAR(50)
+        nome VARCHAR(100) NOT NULL,
+        categoria VARCHAR(50) NOT NULL
 
     )
     """)
@@ -49,27 +50,16 @@ def criar_banco():
     CREATE TABLE IF NOT EXISTS controle(
 
         id SERIAL PRIMARY KEY,
-
         data DATE,
-
         usuario VARCHAR(100),
-
-        caixa_inicial FLOAT,
-
-        caixa_final FLOAT,
-
-        maquina1 FLOAT,
-
-        maquina2 FLOAT,
-
-        maquina3 FLOAT,
-
-        maquina4 FLOAT,
-
-        dinheiro FLOAT,
-
-        pix FLOAT,
-
+        caixa_inicial FLOAT DEFAULT 0,
+        caixa_final FLOAT DEFAULT 0,
+        maquina1 FLOAT DEFAULT 0,
+        maquina2 FLOAT DEFAULT 0,
+        maquina3 FLOAT DEFAULT 0,
+        maquina4 FLOAT DEFAULT 0,
+        dinheiro FLOAT DEFAULT 0,
+        pix FLOAT DEFAULT 0,
         status VARCHAR(20)
 
     )
@@ -80,11 +70,8 @@ def criar_banco():
     CREATE TABLE IF NOT EXISTS producao(
 
         id SERIAL PRIMARY KEY,
-
         controle_id INTEGER,
-
         produto_id INTEGER,
-
         quantidade INTEGER
 
     )
@@ -95,17 +82,38 @@ def criar_banco():
     CREATE TABLE IF NOT EXISTS estoque(
 
         id SERIAL PRIMARY KEY,
-
         controle_id INTEGER,
-
         produto_id INTEGER,
-
         quantidade_final INTEGER,
-
         perda INTEGER
 
     )
     """)
+
+
+    # cria usuário admin se não existir
+
+    cursor.execute("""
+    SELECT * FROM usuarios
+    WHERE nome='admin'
+    """)
+
+    admin = cursor.fetchone()
+
+
+    if admin is None:
+
+        cursor.execute("""
+        INSERT INTO usuarios
+        (nome, senha, nivel)
+
+        VALUES (%s,%s,%s)
+        """,
+        (
+            "admin",
+            "1234",
+            "admin"
+        ))
 
 
     conn.commit()
