@@ -994,6 +994,137 @@ def relatorios():
 
     )
 # ==========================
+# EDITAR RELATÓRIO
+# ==========================
+
+@app.route("/editar_relatorio/<int:id>", methods=["GET","POST"])
+def editar_relatorio(id):
+
+    if "usuario" not in session:
+        return redirect("/")
+
+    if session["nivel"] != "admin":
+        return redirect("/dashboard")
+
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+
+    if request.method == "POST":
+
+
+        caixa_final = float(
+            request.form.get("caixa_final",0)
+        )
+
+        dinheiro = float(
+            request.form.get("dinheiro",0)
+        )
+
+        pix = float(
+            request.form.get("pix",0)
+        )
+
+
+        cursor.execute("""
+        UPDATE controle
+
+        SET
+
+        caixa_final=%s,
+
+        dinheiro=%s,
+
+        pix=%s
+
+        WHERE id=%s
+
+        """,
+        (
+            caixa_final,
+            dinheiro,
+            pix,
+            id
+        ))
+
+
+        conn.commit()
+
+        conn.close()
+
+        return redirect("/relatorios")
+
+
+
+    cursor.execute("""
+    SELECT *
+
+    FROM controle
+
+    WHERE id=%s
+
+    """,
+    (
+        id,
+    ))
+
+
+    controle = cursor.fetchone()
+
+
+    conn.close()
+
+
+    return render_template(
+        "editar_relatorio.html",
+        controle=controle
+    )
+
+
+
+
+
+# ==========================
+# EXCLUIR RELATÓRIO
+# ==========================
+
+@app.route("/excluir_relatorio/<int:id>")
+def excluir_relatorio(id):
+
+    if "usuario" not in session:
+        return redirect("/")
+
+
+    if session["nivel"] != "admin":
+        return redirect("/dashboard")
+
+
+    conn = conectar()
+
+    cursor = conn.cursor()
+
+
+
+    cursor.execute("""
+    DELETE FROM controle
+
+    WHERE id=%s
+
+    """,
+    (
+        id,
+    ))
+
+
+
+    conn.commit()
+
+    conn.close()
+
+
+    return redirect("/relatorios")
+# ==========================
 # LOGOUT
 # ==========================
 

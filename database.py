@@ -6,10 +6,6 @@ def conectar():
 
     DATABASE_URL = os.environ.get("DATABASE_URL")
 
-    if not DATABASE_URL:
-        raise Exception("DATABASE_URL não configurada no Render")
-
-    # Correção para URLs antigas do Render
     if DATABASE_URL.startswith("postgres://"):
         DATABASE_URL = DATABASE_URL.replace(
             "postgres://",
@@ -27,19 +23,12 @@ def criar_banco():
     cursor = conn.cursor()
 
 
-    # ==========================
-    # USUÁRIOS
-    # ==========================
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS usuarios(
 
         id SERIAL PRIMARY KEY,
-
-        nome VARCHAR(100) NOT NULL,
-
+        nome VARCHAR(100) NOT NULL UNIQUE,
         senha VARCHAR(100) NOT NULL,
-
         nivel VARCHAR(20) NOT NULL
 
     )
@@ -47,27 +36,17 @@ def criar_banco():
 
 
 
-    # ==========================
-    # PRODUTOS
-    # ==========================
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS produtos(
 
         id SERIAL PRIMARY KEY,
-
         nome VARCHAR(100) NOT NULL,
-
         categoria VARCHAR(50) NOT NULL
 
     )
     """)
 
 
-
-    # ==========================
-    # CONTROLE DE CAIXA
-    # ==========================
 
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS controle(
@@ -94,25 +73,21 @@ def criar_banco():
 
         pix FLOAT DEFAULT 0,
 
-        status VARCHAR(20)
+        status VARCHAR(20) DEFAULT 'ABERTO'
 
     )
     """)
 
 
 
-    # ==========================
-    # PRODUÇÃO
-    # ==========================
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS producao(
 
         id SERIAL PRIMARY KEY,
 
-        controle_id INTEGER NOT NULL,
+        controle_id INTEGER,
 
-        produto_id INTEGER NOT NULL,
+        produto_id INTEGER,
 
         quantidade INTEGER DEFAULT 0
 
@@ -121,18 +96,14 @@ def criar_banco():
 
 
 
-    # ==========================
-    # ESTOQUE
-    # ==========================
-
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS estoque(
 
         id SERIAL PRIMARY KEY,
 
-        controle_id INTEGER NOT NULL,
+        controle_id INTEGER,
 
-        produto_id INTEGER NOT NULL,
+        produto_id INTEGER,
 
         quantidade_final INTEGER DEFAULT 0,
 
@@ -143,25 +114,15 @@ def criar_banco():
 
 
 
-    # ==========================
-    # CRIAR ADMIN PADRÃO
-    # ==========================
+    # cria admin
 
     cursor.execute("""
-    SELECT id
-
-    FROM usuarios
-
-    WHERE nome=%s
-
-    """,
-    (
-        "admin",
-    ))
+    SELECT id FROM usuarios
+    WHERE nome='admin'
+    """)
 
 
     admin = cursor.fetchone()
-
 
 
     if admin is None:
@@ -169,9 +130,9 @@ def criar_banco():
         cursor.execute("""
         INSERT INTO usuarios
         (
-            nome,
-            senha,
-            nivel
+        nome,
+        senha,
+        nivel
         )
 
         VALUES (%s,%s,%s)
@@ -186,5 +147,7 @@ def criar_banco():
 
 
     conn.commit()
+
+    cursor.close()
 
     conn.close()

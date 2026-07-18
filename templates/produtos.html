@@ -3,18 +3,18 @@
 <html lang="pt-br">
 
 <head>
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#ff6600">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
+
 <meta charset="UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
-
-<title>Produtos</title>
+<title>Relatórios - PastelControl</title>
 
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/static/style.css">
 
 
 </head>
@@ -23,126 +23,90 @@
 <body class="bg-light">
 
 
-
 <div class="container mt-4 mb-5">
 
 
 
+<div class="d-flex justify-content-between align-items-center">
+
+
 <h3>
 
-⚙️ Produtos
+📊 Relatórios
 
 </h3>
 
 
-<p class="text-muted">
+<a href="/dashboard"
+class="btn btn-secondary">
 
-Cadastro de pastéis, bebidas e salgados
+Voltar
 
-</p>
-
-
-
+</a>
 
 
+</div>
 
 
-<!-- CADASTRO -->
+
+<hr>
+
+
+
+
+<!-- FILTRO -->
 
 
 <div class="card shadow p-3 mb-4">
 
 
-<form method="POST">
+<form method="GET">
 
 
+<div class="row">
 
-<label class="form-label">
 
-Nome do produto
+<div class="col-md-8">
+
+
+<label>
+
+Filtrar por data
 
 </label>
-
 
 
 <input
 
-type="text"
+type="date"
 
-name="nome"
+name="data"
 
-class="form-control mb-3"
+class="form-control"
 
-placeholder="Ex: Carne"
-
-required
+value="{{data_filtro or ''}}"
 
 >
 
 
+</div>
 
 
 
-
-<label class="form-label">
-
-Categoria
-
-</label>
+<div class="col-md-4 mt-4">
 
 
+<button class="btn btn-primary w-100">
 
-<select
-
-name="categoria"
-
-class="form-control mb-3"
-
-required>
-
-
-
-<option value="Pastel">
-
-🥟 Pastel
-
-</option>
-
-
-
-<option value="Bebida">
-
-🥤 Bebida
-
-</option>
-
-
-
-<option value="Salgado">
-
-🍗 Salgado
-
-</option>
-
-
-
-</select>
-
-
-
-
-
-
-
-
-<button
-
-class="btn btn-success w-100">
-
-Salvar Produto
+🔎 Buscar
 
 </button>
 
+
+</div>
+
+
+</div>
 
 
 </form>
@@ -155,11 +119,7 @@ Salvar Produto
 
 
 
-
-
-
-
-<!-- LISTA -->
+<!-- CONTROLES -->
 
 
 <div class="card shadow p-3">
@@ -167,10 +127,247 @@ Salvar Produto
 
 <h5>
 
-📦 Produtos cadastrados
+📋 Caixas realizados
 
 </h5>
 
+
+<hr>
+
+
+
+<div class="table-responsive">
+
+
+<table class="table table-striped">
+
+
+<thead class="table-dark">
+
+
+<tr>
+
+
+<th>
+
+Data
+
+</th>
+
+
+<th>
+
+Usuário
+
+</th>
+
+
+<th>
+
+Inicial
+
+</th>
+
+
+<th>
+
+Final
+
+</th>
+
+
+<th>
+
+Status
+
+</th>
+
+
+<th>
+
+Ações
+
+</th>
+
+
+</tr>
+
+
+</thead>
+
+
+
+<tbody>
+
+
+
+{% for controle in controles %}
+
+
+<tr>
+
+
+<td>
+
+{{controle[1]}}
+
+</td>
+
+
+
+<td>
+
+{{controle[2]}}
+
+</td>
+
+
+
+<td>
+
+R$ {{ "%.2f"|format(controle[3]) }}
+
+</td>
+
+
+
+<td>
+
+
+{% if controle[4] %}
+
+R$ {{ "%.2f"|format(controle[4]) }}
+
+{% else %}
+
+-
+
+{% endif %}
+
+
+</td>
+
+
+
+<td>
+
+
+{% if controle[11]|upper == "FECHADO" %}
+
+
+<span class="badge bg-danger">
+
+Fechado
+
+</span>
+
+
+{% else %}
+
+
+<span class="badge bg-success">
+
+Aberto
+
+</span>
+
+
+{% endif %}
+
+
+</td>
+
+
+
+<td>
+
+
+
+<a href="/editar_relatorio/{{controle[0]}}"
+
+class="btn btn-warning btn-sm">
+
+
+✏️
+
+
+</a>
+
+
+
+<a href="/excluir_relatorio/{{controle[0]}}"
+
+class="btn btn-danger btn-sm"
+
+onclick="return confirm('Deseja excluir este relatório?')">
+
+
+🗑️
+
+
+</a>
+
+
+</td>
+
+
+
+</tr>
+
+
+{% else %}
+
+
+<tr>
+
+
+<td colspan="6"
+
+class="text-center">
+
+
+Nenhum registro encontrado.
+
+
+</td>
+
+
+</tr>
+
+
+{% endfor %}
+
+
+
+</tbody>
+
+
+</table>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- RESUMO -->
+
+
+<div class="card shadow mt-4 p-3">
+
+
+<h5>
+
+🥟 Resumo da produção
+
+</h5>
 
 
 <hr>
@@ -178,74 +375,157 @@ Salvar Produto
 
 
 
+<div class="table-responsive">
 
 
-{% for produto in produtos %}
+<table class="table table-bordered">
+
+
+<thead class="table-dark">
+
+
+<tr>
+
+
+<th>
+
+Produto
+
+</th>
+
+
+<th>
+
+Categoria
+
+</th>
+
+
+<th>
+
+Produzido
+
+</th>
+
+
+<th>
+
+Sobra
+
+</th>
+
+
+<th>
+
+Perda
+
+</th>
+
+
+<th>
+
+Consumido
+
+</th>
+
+
+</tr>
+
+
+</thead>
 
 
 
-<div class="border rounded p-3 mb-2">
+<tbody>
 
 
 
-<b>
+{% for produto in resumo %}
+
+
+
+<tr>
+
+
+<td>
+
+{{produto[0]}}
+
+</td>
+
+
+<td>
 
 {{produto[1]}}
 
-</b>
+</td>
 
 
-<br>
+<td>
+
+{{produto[4]}}
+
+</td>
 
 
-Categoria:
+<td>
 
-<span class="badge bg-secondary">
+{{produto[5]}}
+
+</td>
+
+
+<td>
+
+{{produto[3]}}
+
+</td>
+
+
+<td>
 
 {{produto[2]}}
 
-</span>
+</td>
+
+
+</tr>
 
 
 
+{% else %}
 
 
+<tr>
 
 
-<br>
+<td colspan="6"
+
+class="text-center">
+
+Sem dados.
+
+</td>
 
 
-
-
-<a
-
-href="/excluir_produto/{{produto[0]}}"
-
-class="btn btn-danger btn-sm mt-2"
-
-
-onclick="return confirm('Excluir produto?')"
-
->
-
-
-Excluir
-
-</a>
-
-
-
-
-</div>
-
-
-
+</tr>
 
 
 {% endfor %}
 
 
 
+</tbody>
+
+
+
+</table>
+
+
+</div>
+
+
+
 </div>
 
 
@@ -254,20 +534,8 @@ Excluir
 
 
 
-<a href="/dashboard"
-
-class="btn btn-secondary w-100 mt-4">
-
-Voltar
-
-</a>
-
-
-
-
-
-
 </div>
+
 
 
 </body>
