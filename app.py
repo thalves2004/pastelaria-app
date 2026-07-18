@@ -28,19 +28,19 @@ def login():
         conn = conectar()
         cursor = conn.cursor()
 
-
         cursor.execute("""
-        SELECT *
+                       SELECT *
 
-        FROM usuarios
+                       FROM usuarios
 
-        WHERE nome=? AND senha=?
+                       WHERE nome = %s
+                         AND senha = %s
 
-        """,
-        (
-            nome,
-            senha
-        ))
+                       """,
+                       (
+                           nome,
+                           senha
+                       ))
 
 
         usuario = cursor.fetchone()
@@ -184,7 +184,7 @@ def abertura():
         status
         )
 
-        VALUES (?,?,?,?)
+        VALUES (%s,%s,%s,%s)
 
         """,
         (
@@ -223,7 +223,7 @@ def abertura():
             quantidade
             )
 
-            VALUES (?,?,?)
+            VALUES (%s,%s,%s)
 
             """,
             (
@@ -328,7 +328,7 @@ def fechamento():
     ON produtos.id = producao.produto_id
 
 
-    WHERE producao.controle_id=?
+    WHERE producao.controle_id=%s
 
 
     ORDER BY produtos.categoria, produtos.nome
@@ -379,7 +379,7 @@ def fechamento():
             perda
             )
 
-            VALUES (?,?,?,?)
+            VALUES (%s,%s,%s,%s)
 
             """,
             (
@@ -443,24 +443,24 @@ def fechamento():
 
         SET
 
-        caixa_final=?,
+        caixa_final=%s,
 
-        maquina1=?,
+        maquina1=%s,
 
-        maquina2=?,
+        maquina2=%s,
 
-        maquina3=?,
+        maquina3=%s,
 
-        maquina4=?,
+        maquina4=%s,
 
-        dinheiro=?,
+        dinheiro=%s,
 
-        pix=?,
+        pix=%s,
 
         status='FECHADO'
 
 
-        WHERE id=?
+        WHERE id=%s
 
         """,
         (
@@ -564,7 +564,7 @@ def produtos():
         categoria
         )
 
-        VALUES (?,?)
+        VALUES (%s,%s)
 
         """,
         (
@@ -637,7 +637,7 @@ def excluir_produto(id):
     cursor.execute("""
     DELETE FROM produtos
 
-    WHERE id=?
+    WHERE id=%s
 
     """,
     (
@@ -702,7 +702,7 @@ def usuarios():
         nivel
         )
 
-        VALUES (?,?,?)
+        VALUES (%s,%s,%s)
 
         """,
         (
@@ -777,7 +777,7 @@ def excluir_usuario(id):
     cursor.execute("""
     DELETE FROM usuarios
 
-    WHERE id=?
+    WHERE id=%s
 
     """,
     (
@@ -843,7 +843,7 @@ def relatorios():
 
         FROM controle
 
-        WHERE data=?
+        WHERE data=%s
 
         ORDER BY id DESC
 
@@ -924,7 +924,7 @@ def relatorios():
 
 
 
-        WHERE producao.controle_id=?
+        WHERE producao.controle_id=%s
 
 
 
