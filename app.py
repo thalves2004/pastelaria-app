@@ -451,59 +451,68 @@ def fechamento():
 
         )
 
-
-
-
-
         cursor.execute("""
-        UPDATE controle
+                       UPDATE controle
 
-        SET
+                       SET caixa_final=%s,
 
-        caixa_final=%s,
+                           maquina1=%s,
 
-        maquina1=%s,
+                           maquina2=%s,
 
-        maquina2=%s,
+                           maquina3=%s,
 
-        maquina3=%s,
+                           maquina4=%s,
 
-        maquina4=%s,
+                           dinheiro=%s,
 
-        dinheiro=%s,
+                           pix=%s,
 
-        pix=%s,
-
-        status='FECHADO'
+                           status=%s
 
 
-        WHERE id=%s
+                       WHERE id = %s
 
-        """,
-        (
-            total,
+                       """,
+                       (
+                           total,
 
-            maquina1,
+                           maquina1,
 
-            maquina2,
+                           maquina2,
 
-            maquina3,
+                           maquina3,
 
-            maquina4,
+                           maquina4,
 
-            dinheiro,
+                           dinheiro,
 
-            pix,
+                           pix,
 
-            controle[0]
+                           "FECHADO",
 
-        ))
+                           controle[0]
+
+                       ))
 
 
 
 
 
         conn.commit()
+        cursor.execute("""
+                       SELECT status
+                       FROM controle
+                       WHERE id = %s
+                       """,
+                       (
+                           controle[0],
+                       ))
+
+        print(
+            "STATUS SALVO:",
+            cursor.fetchone()
+        )
 
         conn.close()
 
