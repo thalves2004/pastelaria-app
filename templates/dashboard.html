@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+
+<html lang="pt-br">
+
+<head>
+<link rel="manifest" href="/static/manifest.json">
+<meta name="theme-color" content="#ff6600">
+<link rel="apple-touch-icon" href="/static/icon-192.png">
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+
+<title>PastelControl</title>
+
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+
+<link rel="stylesheet" href="/static/style.css">
+
+
+</head>
+
+
+
+<body class="bg-light">
+
+
+<div class="container mt-4 mb-5">
+
+
+
+<!-- CABEÇALHO -->
+
+<div class="d-flex justify-content-between align-items-center">
+
+
+<div>
+
+<h3>
+
+🥟 PastelControl
+
+</h3>
+
+
+<p class="text-muted mb-0">
+
+Olá, {{usuario}} 👋
+
+</p>
+
+
+</div>
+
+
+
+<div style="font-size:45px">
+
+👨‍🍳
+
+</div>
+
+
+</div>
+
+
+
+
+
+<!-- MENU -->
+
+
+<div class="row g-3 mt-3">
+
+
+
+<!-- ABERTURA -->
+
+
+<div class="col-6">
+
+
+<a href="/abertura" class="text-decoration-none">
+
+
+<div class="card shadow card-menu bg-success text-white">
+
+
+<span style="font-size:35px">
+
+🌅
+
+</span>
+
+
+Abertura
+
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+
+
+<!-- FECHAMENTO -->
+
+
+<div class="col-6">
+
+
+<a href="/fechamento" class="text-decoration-none">
+
+
+<div class="card shadow card-menu bg-danger text-white">
+
+
+<span style="font-size:35px">
+
+🌙
+
+</span>
+
+
+Fechamento
+
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+
+
+
+
+{% if session["nivel"] == "admin" %}
+
+
+
+<!-- PRODUTOS -->
+
+
+<div class="col-6">
+
+
+<a href="/produtos" class="text-decoration-none">
+
+
+<div class="card shadow card-menu bg-warning">
+
+
+<span style="font-size:35px">
+
+⚙️
+
+</span>
+
+
+Produtos
+
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+
+
+<!-- USUÁRIOS -->
+
+
+<div class="col-6">
+
+
+<a href="/usuarios" class="text-decoration-none">
+
+
+<div class="card shadow card-menu bg-primary text-white">
+
+
+<span style="font-size:35px">
+
+👥
+
+</span>
+
+
+Usuários
+
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+
+
+<!-- RELATÓRIOS -->
+
+
+<div class="col-12">
+
+
+<a href="/relatorios" class="text-decoration-none">
+
+
+<div class="card shadow card-menu bg-dark text-white">
+
+
+<span style="font-size:35px">
+
+📊
+
+</span>
+
+
+Relatórios
+
+
+</div>
+
+
+</a>
+
+
+</div>
+
+
+
+{% endif %}
+
+
+
+</div>
+
+
+
+
+
+
+
+
+<!-- ÚLTIMO CONTROLE -->
+
+
+{% if ultimo %}
+
+
+<div class="card shadow mt-4 p-4">
+
+
+<h5>
+
+📋 Último controle
+
+</h5>
+
+
+<hr>
+
+
+
+<p>
+
+📅 Data:
+
+<b>
+
+{{ultimo[1]}}
+
+</b>
+
+</p>
+
+
+
+
+<p>
+
+👤 Responsável:
+
+<b>
+
+{{ultimo[2]}}
+
+</b>
+
+</p>
+
+
+
+
+
+<div class="row">
+
+
+<div class="col-6">
+
+
+<div class="card p-3 bg-light">
+
+
+💰 Inicial
+
+<br>
+
+
+<b>
+
+R$ {{ultimo[3]}}
+
+</b>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<div class="col-6">
+
+
+<div class="card p-3 bg-light">
+
+
+💵 Final
+
+<br>
+
+
+<b>
+
+
+{% if ultimo[4] %}
+
+R$ {{ultimo[4]}}
+
+{% else %}
+
+Aberto
+
+{% endif %}
+
+
+</b>
+
+
+</div>
+
+
+</div>
+
+
+</div>
+
+
+
+
+
+<br>
+
+
+
+{% if ultimo[6] == "FECHADO" %}
+
+
+<div class="alert alert-danger text-center">
+
+🔴 Caixa fechado
+
+</div>
+
+
+{% else %}
+
+
+<div class="alert alert-success text-center">
+
+🟢 Caixa aberto
+
+</div>
+
+
+{% endif %}
+
+
+
+</div>
+
+
+
+{% else %}
+
+
+
+<div class="alert alert-warning mt-4">
+
+Nenhum controle realizado.
+
+</div>
+
+
+{% endif %}
+
+
+
+
+
+
+
+<a href="/logout"
+
+class="btn btn-secondary w-100 mt-4">
+
+
+🚪 Sair
+
+
+</a>
+
+
+
+
+</div>
+
+
+</body>
+
+</html>

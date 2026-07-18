@@ -1,0 +1,155 @@
+/* ==========================
+   PASTELCONTROL - ESTILO APP
+========================== */
+
+
+body {
+
+    font-family: 'Segoe UI', Arial, sans-serif;
+
+    background: #f8f9fa;
+
+}
+
+
+
+/* Cards */
+
+.card {
+
+    border: none;
+
+    border-radius: 20px;
+
+    transition: 0.2s;
+
+}
+
+
+
+.card:hover {
+
+    transform: translateY(-3px);
+
+}
+
+
+
+/* Logo */
+
+.logo {
+
+    font-size: 45px;
+
+}
+
+
+
+/* Botões */
+
+.btn {
+
+    border-radius: 15px;
+
+    padding: 12px;
+
+    font-weight: 600;
+
+}
+
+
+
+/* Inputs */
+
+.form-control {
+
+    border-radius: 15px;
+
+    padding: 12px;
+
+    border: 1px solid #ddd;
+
+}
+
+
+
+.form-control:focus {
+
+    box-shadow: 0 0 0 0.2rem rgba(255,193,7,.25);
+
+}
+
+
+
+/* Menu Dashboard */
+
+.card-menu {
+
+    min-height: 120px;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    flex-direction:column;
+
+    font-weight:bold;
+
+}
+
+
+
+/* Categorias */
+
+.categoria {
+
+    font-size:20px;
+
+    font-weight:bold;
+
+    margin-top:20px;
+
+}
+
+
+
+/* Produto */
+
+.produto {
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:15px;
+
+    margin-bottom:10px;
+
+}
+
+
+
+/* Mobile */
+
+@media(max-width:600px){
+
+
+    h3 {
+
+        font-size:24px;
+
+    }
+
+
+    .container {
+
+        padding-left:15px;
+
+        padding-right:15px;
+
+    }
+
+
+}
