@@ -883,89 +883,49 @@ def relatorios():
 
 
 
-    resumo = []
-
-
+    relatorios = []
 
     for controle in controles:
 
+        resumo = []
 
         cursor.execute("""
-        SELECT
+                       SELECT produtos.nome,
+                              produtos.categoria,
+                              producao.quantidade,
+                              COALESCE(estoque.quantidade_final, 0),
+                              COALESCE(estoque.perda, 0)
 
+                       FROM producao
 
-        produtos.nome,
+                                INNER JOIN produtos
+                                           ON produtos.id = producao.produto_id
 
+                                LEFT JOIN estoque
+                                          ON estoque.produto_id = producao.produto_id
+                                              AND estoque.controle_id = producao.controle_id
 
-        produtos.categoria,
+                       WHERE producao.controle_id = %s
 
-
-        producao.quantidade,
-
-
-        COALESCE(estoque.quantidade_final,0),
-
-
-        COALESCE(estoque.perda,0)
-
-
-
-        FROM producao
-
-
-
-        INNER JOIN produtos
-
-
-        ON produtos.id = producao.produto_id
-
-
-
-        LEFT JOIN estoque
-
-
-        ON estoque.produto_id = producao.produto_id
-
-
-        AND estoque.controle_id = producao.controle_id
-
-
-
-        WHERE producao.controle_id=%s
-
-
-
-        """,
-        (
-            controle[0],
-        ))
-
-
+                       """,
+                       (
+                           controle[0],
+                       ))
 
         produtos = cursor.fetchall()
 
-
-
         for produto in produtos:
 
-
             produzido = produto[2]
-
             sobra = produto[3]
-
             perda = produto[4]
 
-
             consumo = produzido - sobra - perda
-
 
             if consumo < 0:
                 consumo = 0
 
-
-
             resumo.append(
-
                 (
                     produto[0],
                     produto[1],
@@ -974,24 +934,23 @@ def relatorios():
                     produzido,
                     sobra
                 )
-
             )
+
+        relatorios.append(
+            (
+                controle,
+                resumo
+            )
+        )
 
 
 
     conn.close()
 
-
     return render_template(
-
         "relatorios.html",
-
-        controles=controles,
-
-        resumo=resumo,
-
+        relatorios=relatorios,
         data_filtro=data_filtro
-
     )
 # ==========================
 # EDITAR RELATÓRIO
