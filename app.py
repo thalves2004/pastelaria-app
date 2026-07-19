@@ -1095,27 +1095,33 @@ def excluir_relatorio(id):
     if "usuario" not in session:
         return redirect("/")
 
-
     if session["nivel"] != "admin":
         return redirect("/dashboard")
 
 
     conn = conectar()
-
     cursor = conn.cursor()
 
+
+    cursor.execute("""
+    DELETE FROM estoque
+    WHERE controle_id=%s
+    """,
+    (id,))
+
+
+    cursor.execute("""
+    DELETE FROM producao
+    WHERE controle_id=%s
+    """,
+    (id,))
 
 
     cursor.execute("""
     DELETE FROM controle
-
     WHERE id=%s
-
     """,
-    (
-        id,
-    ))
-
+    (id,))
 
 
     conn.commit()
