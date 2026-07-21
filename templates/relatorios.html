@@ -31,18 +31,17 @@
     <details class="report-details mt-4">
       <summary>Ver detalhes financeiros</summary>
       <div class="row g-3 mt-1">
-        <div class="col-md-6"><div class="detail-box"><h6>Troco</h6><p>R$ 50: R$ {{ "%.2f"|format(c[12] or 0) }} · R$ 20: R$ {{ "%.2f"|format(c[13] or 0) }} · R$ 10: R$ {{ "%.2f"|format(c[14] or 0) }} · R$ 5: R$ {{ "%.2f"|format(c[15] or 0) }} · R$ 2: R$ {{ "%.2f"|format(c[16] or 0) }} · Moedas: R$ {{ "%.2f"|format(c[17] or 0) }}</p><strong>Notas grandes: R$ {{ "%.2f"|format(c[18] or 0) }}</strong></div></div>
-        <div class="col-md-6"><div class="detail-box"><h6>Descontos e despesas</h6><p>Descontos: R$ {{ "%.2f"|format(c[21] or 0) }} · Fornecedores: R$ {{ "%.2f"|format(c[22] or 0) }} · Segurança: R$ {{ "%.2f"|format(c[23] or 0) }} · Outros: R$ {{ "%.2f"|format(c[24] or 0) }}</p></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p class="mb-0">Notas de R$ 50: R$ {{ "%.2f"|format(c[26] or 0) }} · R$ 100: R$ {{ "%.2f"|format(c[27] or 0) }} · R$ 200: R$ {{ "%.2f"|format(c[28] or 0) }}</p></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Descontos e despesas</h6><p class="mb-0">Descontos: R$ {{ "%.2f"|format(c[21] or 0) }} · Fornecedores: R$ {{ "%.2f"|format(c[22] or 0) }} · Segurança: R$ {{ "%.2f"|format(c[23] or 0) }} · Outros: R$ {{ "%.2f"|format(c[24] or 0) }}</p></div></div>
       </div>
     </details>
 
     <h5 class="mt-4">🥟 Resumo da produção</h5>
-    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Categoria</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th></tr></thead><tbody>
-      {% for p in itens %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[1] }}</td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[5] }}</td><td>{{ p[6] }}</td><td>{{ p[7] }}</td><td>{{ p[4] }}</td><td><span class="sold-pill">{{ p[8] }}</span></td></tr>
-      {% else %}<tr><td colspan="9" class="text-center text-muted">Nenhuma produção registrada.</td></tr>{% endfor %}
+    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Categoria</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th></tr></thead><tbody>
+      {% for p in itens %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[1] }}</td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[5] }}</td><td>{{ p[6] }}</td><td>{{ p[7] }}</td><td>{{ p[4] }}</td></tr>
+      {% else %}<tr><td colspan="8" class="text-center text-muted">Nenhuma produção registrada.</td></tr>{% endfor %}
     </tbody></table></div>
   </article>
   {% else %}<div class="alert alert-warning text-center">Nenhum relatório encontrado.</div>{% endfor %}
 </div>
-</body>
-</html>
+</body></html>

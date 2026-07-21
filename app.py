@@ -90,7 +90,9 @@ def abertura():
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
     cursor.close(); conn.close()
-    return render_template("abertura.html", produtos=produtos)
+    return render_template("abertura.html", produtos=produtos,
+                           pasteis=[p for p in produtos if p[2].lower() == "pastel"],
+                           bebidas=[p for p in produtos if p[2].lower() == "bebida"])
 
 
 @app.route("/fechamento", methods=["GET", "POST"])
@@ -121,7 +123,7 @@ def fechamento():
             vendido = max(0, produzido - sobra - perda - brinde - consumo - sobra_frita)
             if categoria.lower() == "pastel":
                 total_sobra_pasteis += sobra + sobra_frita
-                total_consumo_pasteis += vendido
+                total_consumo_pasteis += consumo
             cursor.execute("DELETE FROM estoque WHERE controle_id=%s AND produto_id=%s", (controle[0], produto_id))
             cursor.execute("""
                 INSERT INTO estoque
@@ -131,9 +133,11 @@ def fechamento():
 
         m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1,5)]
         pix = numero("pix")
-        trocos = [numero(x) for x in ("troco_50","troco_20","troco_10","troco_5","troco_2","moedas")]
-        dinheiro_grande = numero("dinheiro_grande")
-        dinheiro = sum(trocos, Decimal("0")) + dinheiro_grande
+        troco_total = numero("troco_total")
+        dinheiro_50 = numero("dinheiro_50")
+        dinheiro_100 = numero("dinheiro_100")
+        dinheiro_200 = numero("dinheiro_200")
+        dinheiro = troco_total + dinheiro_50 + dinheiro_100 + dinheiro_200
         descontos = numero("descontos")
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
@@ -143,13 +147,13 @@ def fechamento():
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
-                maquina4=%s,dinheiro=%s,pix=%s,troco_50=%s,troco_20=%s,troco_10=%s,
-                troco_5=%s,troco_2=%s,moedas=%s,dinheiro_grande=%s,sobra_pasteis=%s,
-                consumo_pasteis=%s,descontos=%s,fornecedores=%s,seguranca=%s,
-                outras_despesas=%s,status='FECHADO' WHERE id=%s
-        """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,*trocos,dinheiro_grande,
-              total_sobra_pasteis,total_consumo_pasteis,descontos,fornecedores,
-              seguranca,outras,controle[0]))
+                maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_50=%s,
+                dinheiro_100=%s,dinheiro_200=%s,sobra_pasteis=%s,consumo_pasteis=%s,
+                descontos=%s,fornecedores=%s,seguranca=%s,outras_despesas=%s,
+                status='FECHADO' WHERE id=%s
+        """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_50,
+              dinheiro_100,dinheiro_200,total_sobra_pasteis,total_consumo_pasteis,
+              descontos,fornecedores,seguranca,outras,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
 
@@ -158,26 +162,17 @@ def fechamento():
                            caixa_inicial=controle[2])
 
 
-@app.route("/produtos", methods=["GET", "POST"])
+@app.route("/produtos")
 def produtos():
-    if not autenticado(): return redirect("/")
-    if not admin(): return redirect("/dashboard")
-    conn = conectar(); cursor = conn.cursor()
-    if request.method == "POST":
-        cursor.execute("INSERT INTO produtos (nome,categoria) VALUES (%s,%s)",
-                       (request.form.get("nome"), request.form.get("categoria")))
-        conn.commit()
-    cursor.execute("SELECT * FROM produtos ORDER BY categoria,nome")
-    lista = cursor.fetchall(); cursor.close(); conn.close()
-    return render_template("produtos.html", produtos=lista)
+    # Os produtos são fixos nesta versão; a tela de cadastro foi removida.
+    if not autenticado():
+        return redirect("/")
+    return redirect("/dashboard")
 
 
 @app.route("/excluir_produto/<int:id>")
 def excluir_produto(id):
-    if not autenticado() or not admin(): return redirect("/dashboard")
-    conn = conectar(); cursor = conn.cursor()
-    cursor.execute("DELETE FROM produtos WHERE id=%s", (id,)); conn.commit()
-    cursor.close(); conn.close(); return redirect("/produtos")
+    return redirect("/dashboard")
 
 
 @app.route("/usuarios", methods=["GET", "POST"])
@@ -186,8 +181,12 @@ def usuarios():
     if not admin(): return redirect("/dashboard")
     conn = conectar(); cursor = conn.cursor()
     if request.method == "POST":
-        cursor.execute("INSERT INTO usuarios (nome,senha,nivel) VALUES (%s,%s,%s) ON CONFLICT (nome) DO NOTHING",
-                       (request.form.get("nome"),request.form.get("senha"),request.form.get("nivel")))
+        cursor.execute("""
+            INSERT INTO usuarios (nome,senha,nivel)
+            SELECT %s,%s,%s
+            WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE nome=%s)
+        """, (request.form.get("nome"), request.form.get("senha"),
+              request.form.get("nivel"), request.form.get("nome")))
         conn.commit()
     cursor.execute("SELECT * FROM usuarios ORDER BY nome")
     lista = cursor.fetchall(); cursor.close(); conn.close()
@@ -212,7 +211,7 @@ def relatorios():
         SELECT id,data,usuario,caixa_inicial,caixa_final,maquina1,maquina2,maquina3,
         maquina4,dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
-        seguranca,outras_despesas FROM controle
+        seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200 FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -229,10 +228,7 @@ def relatorios():
             LEFT JOIN estoque e ON e.controle_id=pr.controle_id AND e.produto_id=pr.produto_id
             WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
         """, (controle[0],))
-        itens = []
-        for r in cursor.fetchall():
-            vendido = max(0, r[2]-r[3]-r[4]-r[5]-r[6]-r[7])
-            itens.append((*r, vendido))
+        itens = cursor.fetchall()
         relatorios.append((controle,itens))
     cursor.close(); conn.close()
     return render_template("relatorios.html", relatorios=relatorios, data_filtro=data_filtro)
@@ -240,24 +236,35 @@ def relatorios():
 
 @app.route("/editar_relatorio/<int:id>", methods=["GET", "POST"])
 def editar_relatorio(id):
-    if not autenticado() or not admin(): return redirect("/dashboard")
+    if not autenticado() or not admin():
+        return redirect("/dashboard")
     conn = conectar(); cursor = conn.cursor()
     if request.method == "POST":
-        campos = ["caixa_final","maquina1","maquina2","maquina3","maquina4","dinheiro","pix",
-                  "troco_50","troco_20","troco_10","troco_5","troco_2","moedas","dinheiro_grande",
-                  "descontos","fornecedores","seguranca","outras_despesas"]
-        valores = [numero(c) for c in campos]
+        m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1, 5)]
+        pix = numero("pix")
+        troco_total = numero("troco_total")
+        dinheiro_50 = numero("dinheiro_50")
+        dinheiro_100 = numero("dinheiro_100")
+        dinheiro_200 = numero("dinheiro_200")
+        dinheiro = troco_total + dinheiro_50 + dinheiro_100 + dinheiro_200
+        descontos = numero("descontos")
+        fornecedores = numero("fornecedores")
+        seguranca = numero("seguranca")
+        outras = numero("outras_despesas")
+        caixa_final = m1 + m2 + m3 + m4 + pix + dinheiro - descontos - fornecedores - seguranca - outras
         cursor.execute("""
-            UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,maquina4=%s,
-            dinheiro=%s,pix=%s,troco_50=%s,troco_20=%s,troco_10=%s,troco_5=%s,troco_2=%s,
-            moedas=%s,dinheiro_grande=%s,descontos=%s,fornecedores=%s,seguranca=%s,
-            outras_despesas=%s WHERE id=%s
-        """, (*valores,id))
-        conn.commit(); cursor.close(); conn.close(); return redirect("/relatorios")
+            UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
+                maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_50=%s,
+                dinheiro_100=%s,dinheiro_200=%s,descontos=%s,fornecedores=%s,
+                seguranca=%s,outras_despesas=%s WHERE id=%s
+        """, (caixa_final,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_50,
+              dinheiro_100,dinheiro_200,descontos,fornecedores,seguranca,outras,id))
+        conn.commit(); cursor.close(); conn.close()
+        return redirect("/relatorios")
     cursor.execute("""
         SELECT id,data,usuario,caixa_inicial,caixa_final,maquina1,maquina2,maquina3,maquina4,
-        dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,moedas,dinheiro_grande,
-        descontos,fornecedores,seguranca,outras_despesas FROM controle WHERE id=%s
+        dinheiro,pix,status,descontos,fornecedores,seguranca,outras_despesas,
+        troco_total,dinheiro_50,dinheiro_100,dinheiro_200 FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone(); cursor.close(); conn.close()
     return render_template("editar_relatorio.html", controle=controle)
