@@ -66,7 +66,8 @@
         <div class="inline-total mt-3"><span>Total em dinheiro</span><strong>R$ <span id="total-dinheiro">0,00</span></strong></div>
       </section></div>
 
-      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Descontos e despesas</h4><p>Esses valores serão descontados do total bruto.</p></div></div></div><div class="row g-3">
+      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Despesas diárias</h4><p>Registre as despesas e quem trabalhou no dia.</p></div></div></div><div class="row g-3">
+        <div class="col-12"><label for="equipe_dia">Quem trabalhou no dia</label><input type="text" name="equipe_dia" id="equipe_dia" class="form-control" placeholder="Ex.: Thomas, João e Maria"></div>
         {% for campo, rotulo in [('descontos','Descontos'),('fornecedores','Fornecedores'),('seguranca','Segurança'),('outras_despesas','Outras despesas')] %}<div class="col-sm-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="{{ campo }}" id="{{ campo }}" value="0" class="form-control valor-despesa"></div></div>{% endfor %}
       </div></section></div>
 

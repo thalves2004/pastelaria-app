@@ -73,8 +73,9 @@
 
       <section class="col-lg-6">
         <div class="app-card h-100">
-          <div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Descontos e despesas</h4><p>Valores descontados do total bruto.</p></div></div></div>
+          <div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Despesas diárias</h4><p>Corrija as despesas e os nomes de quem trabalhou.</p></div></div></div>
           <div class="row g-3">
+            <div class="col-12"><label for="equipe_dia">Quem trabalhou no dia</label><input class="form-control" type="text" id="equipe_dia" name="equipe_dia" value="{{ controle[18] or '' }}" placeholder="Ex.: Thomas, João e Maria"></div>
             {% for nome,rotulo,indice in [('descontos','Descontos',12),('fornecedores','Fornecedores',13),('seguranca','Segurança',14),('outras_despesas','Outras despesas',15)] %}
             <div class="col-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input class="form-control valor-despesa" type="number" step="0.01" min="0" id="{{ nome }}" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div></div>
             {% endfor %}

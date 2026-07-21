@@ -151,6 +151,7 @@ def fechamento():
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
         outras = numero("outras_despesas")
+        equipe_dia = request.form.get("equipe_dia", "").strip()
         total_bruto = m1 + m2 + m3 + m4 + dinheiro + pix
         total_liquido = total_bruto - descontos - fornecedores - seguranca - outras
 
@@ -160,10 +161,10 @@ def fechamento():
                 dinheiro_50=0,dinheiro_100=0,dinheiro_200=0,
                 sobra_pasteis=%s,consumo_pasteis=%s,
                 descontos=%s,fornecedores=%s,seguranca=%s,outras_despesas=%s,
-                status='FECHADO' WHERE id=%s
+                equipe_dia=%s,status='FECHADO' WHERE id=%s
         """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
               total_sobra_pasteis,total_consumo_pasteis,
-              descontos,fornecedores,seguranca,outras,controle[0]))
+              descontos,fornecedores,seguranca,outras,equipe_dia,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
 
@@ -221,7 +222,7 @@ def relatorios():
         SELECT id,data,usuario,caixa_inicial,caixa_final,maquina1,maquina2,maquina3,
         maquina4,dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
-        seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200 FROM controle
+        seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,equipe_dia FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -318,6 +319,7 @@ def editar_relatorio(id):
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
         outras = numero("outras_despesas")
+        equipe_dia = request.form.get("equipe_dia", "").strip()
         caixa_final = (
             m1 + m2 + m3 + m4 + pix + dinheiro
             - descontos - fornecedores - seguranca - outras
@@ -329,12 +331,12 @@ def editar_relatorio(id):
                 maquina4=%s, dinheiro=%s, pix=%s, troco_total=%s,
                 dinheiro_grande=%s, dinheiro_50=0, dinheiro_100=0, dinheiro_200=0,
                 sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
-                fornecedores=%s, seguranca=%s, outras_despesas=%s
+                fornecedores=%s, seguranca=%s, outras_despesas=%s, equipe_dia=%s
             WHERE id=%s
         """, (
             caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
             dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
-            descontos, fornecedores, seguranca, outras, id,
+            descontos, fornecedores, seguranca, outras, equipe_dia, id,
         ))
         conn.commit()
         cursor.close()
@@ -347,7 +349,8 @@ def editar_relatorio(id):
                descontos, fornecedores, seguranca, outras_despesas,
                troco_total,
                COALESCE(NULLIF(dinheiro_grande, 0),
-                        COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0))
+                        COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0)),
+               COALESCE(equipe_dia, '')
         FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone()

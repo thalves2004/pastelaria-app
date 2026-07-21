@@ -183,6 +183,7 @@ def criar_banco():
             "fornecedores": "NUMERIC(12,2) DEFAULT 0",
             "seguranca": "NUMERIC(12,2) DEFAULT 0",
             "outras_despesas": "NUMERIC(12,2) DEFAULT 0",
+            "equipe_dia": "TEXT DEFAULT ''",
         }
         for nome, tipo in colunas_controle.items():
             cursor.execute(f"ALTER TABLE controle ADD COLUMN IF NOT EXISTS {nome} {tipo}")
