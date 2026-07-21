@@ -96,10 +96,15 @@ def criar_banco():
             cursor.execute(f"ALTER TABLE estoque ADD COLUMN IF NOT EXISTS {nome} {tipo}")
 
         cursor.execute("""
-            INSERT INTO usuarios (nome, senha, nivel)
-            VALUES ('admin', '123', 'admin')
-            ON CONFLICT (nome) DO NOTHING
-        """)
+                       INSERT INTO usuarios (nome, senha, nivel)
+                       SELECT 'admin',
+                              '123',
+                              'admin' WHERE NOT EXISTS (
+                SELECT 1
+                FROM usuarios
+                WHERE nome = 'admin'
+            )
+                       """)
 
         cursor.execute("SELECT COUNT(*) FROM produtos")
         if cursor.fetchone()[0] == 0:
