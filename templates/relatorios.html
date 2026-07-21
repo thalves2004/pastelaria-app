@@ -43,9 +43,9 @@
     </tbody></table></div>
 
     <h5 class="mt-4">🥤 Bebidas</h5>
-    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Perda</th></tr></thead><tbody>
-      {% for p in itens if p[1]|lower == 'bebida' %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[4] }}</td></tr>
-      {% else %}<tr><td colspan="4" class="text-center text-muted">Nenhuma bebida registrada.</td></tr>{% endfor %}
+    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th></tr></thead><tbody>
+      {% for p in itens if p[1]|lower == 'bebida' %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[6] }}</td><td>{{ p[4] }}</td></tr>
+      {% else %}<tr><td colspan="5" class="text-center text-muted">Nenhuma bebida registrada.</td></tr>{% endfor %}
     </tbody></table></div>
   </article>
   {% else %}<div class="alert alert-warning text-center">Nenhum relatório encontrado.</div>{% endfor %}

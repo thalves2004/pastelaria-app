@@ -1,5 +1,7 @@
 import os
 import psycopg2
+import re
+import unicodedata
 
 
 def conectar():
@@ -31,6 +33,81 @@ PRODUTOS_PADRAO = [
 ]
 
 ORDEM_PRODUTOS = {nome.lower(): indice for indice, (nome, _) in enumerate(PRODUTOS_PADRAO)}
+
+
+def normalizar_nome_produto(nome):
+    texto = unicodedata.normalize("NFKD", str(nome or ""))
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return re.sub(r"\s+", " ", texto).strip().lower()
+
+
+def consolidar_produtos_repetidos(cursor):
+    """Une produtos repetidos sem perder produções ou relatórios antigos."""
+    cursor.execute("SELECT id, nome, categoria FROM produtos ORDER BY id")
+    grupos = {}
+    for produto_id, nome, categoria in cursor.fetchall():
+        grupos.setdefault(normalizar_nome_produto(nome), []).append((produto_id, nome, categoria))
+
+    padrao_por_chave = {normalizar_nome_produto(nome): (nome, categoria) for nome, categoria in PRODUTOS_PADRAO}
+
+    for chave, registros in grupos.items():
+        if len(registros) == 1:
+            produto_id, nome_atual, categoria_atual = registros[0]
+            if chave in padrao_por_chave:
+                nome_correto, categoria_correta = padrao_por_chave[chave]
+                cursor.execute("UPDATE produtos SET nome=%s, categoria=%s WHERE id=%s",
+                               (nome_correto, categoria_correta, produto_id))
+            continue
+
+        principal = registros[0]
+        principal_id = principal[0]
+        if chave in padrao_por_chave:
+            nome_correto, categoria_correta = padrao_por_chave[chave]
+            cursor.execute("UPDATE produtos SET nome=%s, categoria=%s WHERE id=%s",
+                           (nome_correto, categoria_correta, principal_id))
+
+        for duplicado_id, _, _ in registros[1:]:
+            # Consolida a produção por dia antes de trocar a referência.
+            cursor.execute("SELECT id, controle_id, quantidade FROM producao WHERE produto_id=%s", (duplicado_id,))
+            for producao_id, controle_id, quantidade in cursor.fetchall():
+                cursor.execute("SELECT id, quantidade FROM producao WHERE controle_id=%s AND produto_id=%s LIMIT 1",
+                               (controle_id, principal_id))
+                existente = cursor.fetchone()
+                if existente:
+                    cursor.execute("UPDATE producao SET quantidade=%s WHERE id=%s",
+                                   ((existente[1] or 0) + (quantidade or 0), existente[0]))
+                    cursor.execute("DELETE FROM producao WHERE id=%s", (producao_id,))
+                else:
+                    cursor.execute("UPDATE producao SET produto_id=%s WHERE id=%s", (principal_id, producao_id))
+
+            # Consolida os dados de fechamento e preserva todos os valores.
+            cursor.execute("""
+                SELECT id, controle_id, quantidade_final, perda, brinde, consumo, sobra_frita
+                FROM estoque WHERE produto_id=%s
+            """, (duplicado_id,))
+            for estoque_id, controle_id, retorno, perda, brinde, consumo, sobra_frita in cursor.fetchall():
+                cursor.execute("""
+                    SELECT id, quantidade_final, perda, brinde, consumo, sobra_frita
+                    FROM estoque WHERE controle_id=%s AND produto_id=%s LIMIT 1
+                """, (controle_id, principal_id))
+                existente = cursor.fetchone()
+                if existente:
+                    cursor.execute("""
+                        UPDATE estoque SET quantidade_final=%s, perda=%s, brinde=%s, consumo=%s, sobra_frita=%s
+                        WHERE id=%s
+                    """, (
+                        (existente[1] or 0) + (retorno or 0),
+                        (existente[2] or 0) + (perda or 0),
+                        (existente[3] or 0) + (brinde or 0),
+                        (existente[4] or 0) + (consumo or 0),
+                        (existente[5] or 0) + (sobra_frita or 0),
+                        existente[0],
+                    ))
+                    cursor.execute("DELETE FROM estoque WHERE id=%s", (estoque_id,))
+                else:
+                    cursor.execute("UPDATE estoque SET produto_id=%s WHERE id=%s", (principal_id, estoque_id))
+
+            cursor.execute("DELETE FROM produtos WHERE id=%s", (duplicado_id,))
 
 
 def criar_banco():
@@ -125,6 +202,9 @@ def criar_banco():
             WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE nome='admin')
         """)
 
+        # Consolida registros antigos repetidos antes de conferir a lista fixa.
+        consolidar_produtos_repetidos(cursor)
+
         # Os produtos passam a ser fixos. Só adiciona os que ainda não existem.
         for nome, categoria in PRODUTOS_PADRAO:
             cursor.execute("""
@@ -134,6 +214,9 @@ def criar_banco():
                     SELECT 1 FROM produtos WHERE LOWER(nome)=LOWER(%s)
                 )
             """, (nome, categoria, nome))
+
+        # Uma segunda passagem elimina possíveis variações de acentos e espaços.
+        consolidar_produtos_repetidos(cursor)
 
         conn.commit()
         print("Banco de dados verificado e atualizado com sucesso.")

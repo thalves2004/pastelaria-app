@@ -33,20 +33,21 @@
     </section>
 
     <section class="app-card mb-4">
-      <div class="section-heading"><div><span class="section-icon">🥤</span><div><h4>Bebidas</h4><p>Para bebidas, informe somente retorno e perda.</p></div></div></div>
+      <div class="section-heading"><div><span class="section-icon">🥤</span><div><h4>Bebidas</h4><p>Para bebidas, informe retorno, consumo e perda.</p></div></div></div>
       <div class="table-responsive d-none d-lg-block">
         <table class="table align-middle production-table">
-          <thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Perda</th></tr></thead>
+          <thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th></tr></thead>
           <tbody>{% for produto in bebidas %}<tr>
             <td><strong>{{ produto[2] }}</strong></td><td class="fw-bold text-primary">{{ produto[4] }}</td>
             <td><input class="form-control form-control-sm sync-produto" type="number" min="0" value="0" name="final_{{ produto[0] }}"></td>
+            <td><input class="form-control form-control-sm sync-produto" type="number" min="0" value="0" name="consumo_{{ produto[0] }}"></td>
             <td><input class="form-control form-control-sm sync-produto" type="number" min="0" value="0" name="perda_{{ produto[0] }}"></td>
           </tr>{% endfor %}</tbody>
         </table>
       </div>
       <div class="d-lg-none">{% for produto in bebidas %}<article class="product-card-mobile">
         <div class="d-flex justify-content-between align-items-start mb-3"><strong>{{ produto[2] }}</strong><span class="produced-pill">Saída: {{ produto[4] }}</span></div>
-        <div class="row g-2"><div class="col-6"><label>Retorno</label><input class="form-control sync-produto" type="number" min="0" value="0" name="final_{{ produto[0] }}"></div><div class="col-6"><label>Perda</label><input class="form-control sync-produto" type="number" min="0" value="0" name="perda_{{ produto[0] }}"></div></div>
+        <div class="row g-2"><div class="col-4"><label>Retorno</label><input class="form-control sync-produto" type="number" min="0" value="0" name="final_{{ produto[0] }}"></div><div class="col-4"><label>Consumo</label><input class="form-control sync-produto" type="number" min="0" value="0" name="consumo_{{ produto[0] }}"></div><div class="col-4"><label>Perda</label><input class="form-control sync-produto" type="number" min="0" value="0" name="perda_{{ produto[0] }}"></div></div>
       </article>{% endfor %}</div>
     </section>
 

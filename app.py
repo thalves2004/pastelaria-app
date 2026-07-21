@@ -125,7 +125,7 @@ def fechamento():
             perda = inteiro(f"perda_{producao_id}")
             if categoria.lower() == "bebida":
                 brinde = 0
-                consumo = 0
+                consumo = inteiro(f"consumo_{producao_id}")
                 sobra_frita = 0
             else:
                 brinde = inteiro(f"brinde_{producao_id}")
@@ -284,7 +284,7 @@ def editar_relatorio(id):
             perda = inteiro(f"perda_{producao_id}")
             if categoria.lower() == "bebida":
                 brinde = 0
-                consumo = 0
+                consumo = inteiro(f"consumo_{producao_id}")
                 sobra_frita = 0
             else:
                 brinde = inteiro(f"brinde_{producao_id}")
