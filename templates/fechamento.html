@@ -1,608 +1,174 @@
 <!DOCTYPE html>
-
 <html lang="pt-br">
-
 <head>
-<link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#ff6600">
-<link rel="apple-touch-icon" href="/static/icon-192.png">
-<meta charset="UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ff6600">
+  <link rel="manifest" href="/static/manifest.json">
+  <title>Fechamento - PastelControl</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-light">
+<div class="container py-4 fechamento-page">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+      <span class="eyebrow">PASTELCONTROL</span>
+      <h2 class="mb-1">🌙 Fechamento do dia</h2>
+      <p class="text-muted mb-0">{{ data }} · Caixa inicial: R$ {{ "%.2f"|format(caixa_inicial or 0) }}</p>
+    </div>
+    <a href="/dashboard" class="btn btn-outline-secondary">← Voltar</a>
+  </div>
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+  <form method="POST" id="form-fechamento">
+    <section class="app-card mb-4">
+      <div class="section-heading">
+        <div><span class="section-icon">🥟</span><div><h4>Produção e retorno</h4><p>Preencha o que voltou, brindes, consumo interno, sobras fritas e perdas.</p></div></div>
+      </div>
 
+      <div class="table-responsive d-none d-lg-block">
+        <table class="table align-middle production-table">
+          <thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th></tr></thead>
+          <tbody>
+          {% for produto in produtos %}
+            <tr>
+              <td><strong>{{ produto[2] }}</strong><br><span class="badge text-bg-light">{{ produto[3] }}</span></td>
+              <td class="fw-bold text-primary">{{ produto[4] }}</td>
+              {% for campo in ['final','brinde','consumo','sobra_frita','perda'] %}
+              <td><input class="form-control form-control-sm calc-produto" type="number" min="0" value="0"
+                         name="{{ campo }}_{{ produto[0] }}" id="{{ campo }}_{{ produto[0] }}"
+                         data-id="{{ produto[0] }}" data-produzido="{{ produto[4] }}"></td>
+              {% endfor %}
+              <td><span class="sold-pill" id="vendido_{{ produto[0] }}">{{ produto[4] }}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
 
-<title>Fechamento</title>
+      <div class="d-lg-none">
+      {% for produto in produtos %}
+        <article class="product-card-mobile">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div><strong>{{ produto[2] }}</strong><br><small class="text-muted">{{ produto[3] }}</small></div>
+            <span class="produced-pill">Saída: {{ produto[4] }}</span>
+          </div>
+          <div class="row g-2">
+            {% for campo, rotulo in [('final','Retorno'),('brinde','Brinde'),('consumo','Consumo'),('sobra_frita','Sobra frita'),('perda','Perda')] %}
+            <div class="col-6"><label>{{ rotulo }}</label><input class="form-control calc-produto" type="number" min="0" value="0"
+              name="{{ campo }}_{{ produto[0] }}" data-id="{{ produto[0] }}" data-produzido="{{ produto[4] }}"></div>
+            {% endfor %}
+            <div class="col-12 mt-3"><div class="mobile-result">Vendido automaticamente <strong id="vendido_mobile_{{ produto[0] }}">{{ produto[4] }}</strong></div></div>
+          </div>
+        </article>
+      {% endfor %}
+      </div>
+    </section>
 
+    <div class="row g-4">
+      <div class="col-lg-6">
+        <section class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">💳</span><div><h4>Máquinas e PIX</h4><p>Informe o total apresentado em cada meio.</p></div></div></div>
+          <div class="row g-3">
+            {% for i in range(1,5) %}
+            <div class="col-6"><label>Máquina {{ i }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="maquina{{ i }}" id="maquina{{ i }}" value="0" class="form-control valor-caixa"></div></div>
+            {% endfor %}
+            <div class="col-12"><label>PIX</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="pix" id="pix" value="0" class="form-control valor-caixa"></div></div>
+          </div>
+        </section>
+      </div>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+      <div class="col-lg-6">
+        <section class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">💵</span><div><h4>Dinheiro em caixa</h4><p>Separe o troco das notas maiores.</p></div></div></div>
+          <h6 class="subheading">Troco — valores até R$ 50</h6>
+          <div class="row g-3">
+            {% for campo, rotulo in [('troco_50','Notas de R$ 50'),('troco_20','Notas de R$ 20'),('troco_10','Notas de R$ 10'),('troco_5','Notas de R$ 5'),('troco_2','Notas de R$ 2'),('moedas','Moedas')] %}
+            <div class="col-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="{{ campo }}" id="{{ campo }}" value="0" class="form-control valor-caixa dinheiro-campo"></div></div>
+            {% endfor %}
+          </div>
+          <h6 class="subheading mt-4">Dinheiro — notas de R$ 100 e R$ 200</h6>
+          <div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="dinheiro_grande" id="dinheiro_grande" value="0" class="form-control valor-caixa dinheiro-campo"></div>
+          <div class="inline-total mt-3"><span>Total em dinheiro</span><strong>R$ <span id="total-dinheiro">0,00</span></strong></div>
+        </section>
+      </div>
 
+      <div class="col-lg-6">
+        <section class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Descontos e despesas</h4><p>Esses valores são descontados do total bruto.</p></div></div></div>
+          <div class="row g-3">
+            {% for campo, rotulo in [('descontos','Descontos'),('fornecedores','Fornecedores'),('seguranca','Segurança'),('outras_despesas','Outras despesas')] %}
+            <div class="col-sm-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="{{ campo }}" id="{{ campo }}" value="0" class="form-control valor-despesa"></div></div>
+            {% endfor %}
+          </div>
+        </section>
+      </div>
 
+      <div class="col-lg-6">
+        <section class="summary-card h-100">
+          <span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span>
+          <h4 class="mb-4">Conferência do fechamento</h4>
+          <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div>
+          <div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div>
+          <div class="summary-line"><span>Dinheiro</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div>
+          <div class="summary-line"><span>Total bruto</span><strong>R$ <span id="total-bruto">0,00</span></strong></div>
+          <div class="summary-line expense"><span>Despesas e descontos</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div>
+          <div class="summary-final"><span>Total líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
+        </section>
+      </div>
+    </div>
+
+    <button class="btn btn-danger btn-lg w-100 mt-4 py-3" type="submit" onclick="return confirm('Confirma o fechamento do caixa?')">🔒 Finalizar fechamento</button>
+  </form>
+</div>
 
 <script>
+const moeda = valor => valor.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+const valor = id => Number(document.getElementById(id)?.value || 0);
 
-function calcular(id, produzido){
-
-
-    let sobra = Number(document.getElementById("final_"+id).value) || 0;
-
-
-    let perda = Number(document.getElementById("perda_"+id).value) || 0;
-
-
-
-    let consumo = produzido - sobra - perda;
-
-
-
-    if(consumo < 0){
-
-        consumo = 0;
-
-    }
-
-
-
-    document.getElementById("consumo_"+id).innerHTML = consumo;
-
-
+function atualizarProduto(id, produzido) {
+  const nomes = ['final','brinde','consumo','sobra_frita','perda'];
+  let baixas = 0;
+  nomes.forEach(nome => {
+    document.querySelectorAll(`[name="${nome}_${id}"]`).forEach(el => { if (el.offsetParent !== null || window.innerWidth >= 992) baixas += Number(el.value || 0); });
+  });
+  // Há campos duplicados para desktop/mobile; usa apenas o primeiro conjunto.
+  if (document.querySelectorAll(`[name="final_${id}"]`).length > 1) {
+    baixas = nomes.reduce((s,n) => s + Number(document.querySelector(`[name="${n}_${id}"]`).value || 0), 0);
+  }
+  const vendido = Math.max(0, produzido - baixas);
+  const desk = document.getElementById(`vendido_${id}`);
+  const mobile = document.getElementById(`vendido_mobile_${id}`);
+  if (desk) desk.textContent = vendido;
+  if (mobile) mobile.textContent = vendido;
 }
 
-
-
-
-
-
-function totalizar(){
-
-
-let valores = [
-
-"maquina1",
-
-"maquina2",
-
-"maquina3",
-
-"maquina4",
-
-"dinheiro",
-
-"pix"
-
-];
-
-
-
-let total = 0;
-
-
-
-valores.forEach(function(id){
-
-
-    total += Number(document.getElementById(id).value) || 0;
-
-
+document.querySelectorAll('.calc-produto').forEach(input => {
+  input.addEventListener('input', e => {
+    const id = e.target.dataset.id;
+    const nome = e.target.name;
+    document.querySelectorAll(`[name="${nome}"]`).forEach(outro => { if (outro !== e.target) outro.value = e.target.value; });
+    atualizarProduto(id, Number(e.target.dataset.produzido));
+  });
 });
 
-
-
-document.getElementById("total").innerHTML = total.toFixed(2);
-
-
-
+function totalizar() {
+  const maquinas = valor('maquina1') + valor('maquina2') + valor('maquina3') + valor('maquina4');
+  const pix = valor('pix');
+  const dinheiro = ['troco_50','troco_20','troco_10','troco_5','troco_2','moedas','dinheiro_grande'].reduce((s,id) => s + valor(id), 0);
+  const despesas = ['descontos','fornecedores','seguranca','outras_despesas'].reduce((s,id) => s + valor(id), 0);
+  const bruto = maquinas + pix + dinheiro;
+  const liquido = bruto - despesas;
+  document.getElementById('total-dinheiro').textContent = moeda(dinheiro);
+  document.getElementById('resumo-maquinas').textContent = moeda(maquinas);
+  document.getElementById('resumo-pix').textContent = moeda(pix);
+  document.getElementById('resumo-dinheiro').textContent = moeda(dinheiro);
+  document.getElementById('total-bruto').textContent = moeda(bruto);
+  document.getElementById('total-despesas').textContent = moeda(despesas);
+  document.getElementById('total-liquido').textContent = moeda(liquido);
 }
-
-
-
+document.querySelectorAll('.valor-caixa,.valor-despesa').forEach(el => el.addEventListener('input', totalizar));
+totalizar();
 </script>
-
-
-
-</head>
-
-
-
-
-<body class="bg-light">
-
-
-
-<div class="container mt-4 mb-5">
-
-
-
-<h3>
-
-🌙 Fechamento do Dia
-
-</h3>
-
-
-
-<div class="alert alert-info">
-
-📅 Data:
-
-<b>
-
-{{data}}
-
-</b>
-
-</div>
-
-
-
-
-
-
-
-
-
-<form method="POST">
-
-
-
-
-
-
-
-<h5>
-
-🥟 Controle da produção
-
-</h5>
-
-
-
-
-
-
-
-
-{% for produto in produtos %}
-
-
-
-<div class="card shadow-sm p-3 mb-3">
-
-
-
-<h5>
-
-{{produto[1]}}
-
-</h5>
-
-
-
-<span class="badge bg-secondary">
-
-{{produto[2]}}
-
-</span>
-
-
-
-
-
-<hr>
-
-
-
-
-
-<div class="text-center mb-3">
-
-
-Produzido hoje
-
-
-<br>
-
-
-<h4 class="text-primary">
-
-{{produto[3]}}
-
-</h4>
-
-
-</div>
-
-
-
-
-
-
-
-<label>
-
-Quantidade que sobrou:
-
-</label>
-
-
-
-<input
-
-type="number"
-
-class="form-control"
-
-name="final_{{produto[0]}}"
-
-id="final_{{produto[0]}}"
-
-value="0"
-
-oninput="calcular({{produto[0]}},{{produto[3]}})"
-
->
-
-
-
-
-
-
-
-<label class="mt-3">
-
-Perda:
-
-</label>
-
-
-
-<input
-
-type="number"
-
-class="form-control"
-
-name="perda_{{produto[0]}}"
-
-id="perda_{{produto[0]}}"
-
-value="0"
-
-oninput="calcular({{produto[0]}},{{produto[3]}})"
-
->
-
-
-
-
-
-
-
-
-<div class="alert alert-success mt-3">
-
-
-Consumido:
-
-<b>
-
-<span id="consumo_{{produto[0]}}">
-
-0
-
-</span>
-
-</b>
-
-
-</div>
-
-
-
-
-
-</div>
-
-
-
-{% endfor %}
-
-
-
-
-
-
-
-
-
-<hr>
-
-
-
-
-<h5>
-
-💳 Cartões
-
-</h5>
-
-
-
-<div class="card shadow p-3">
-
-
-
-
-
-<label>
-
-Máquina 1
-
-</label>
-
-<input
-
-class="form-control mb-2"
-
-type="number"
-
-step="0.01"
-
-name="maquina1"
-
-id="maquina1"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-
-
-<label>
-
-Máquina 2
-
-</label>
-
-
-<input
-
-class="form-control mb-2"
-
-type="number"
-
-step="0.01"
-
-name="maquina2"
-
-id="maquina2"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-
-
-<label>
-
-Máquina 3
-
-</label>
-
-
-<input
-
-class="form-control mb-2"
-
-type="number"
-
-step="0.01"
-
-name="maquina3"
-
-id="maquina3"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-
-
-<label>
-
-Máquina 4
-
-</label>
-
-
-<input
-
-class="form-control mb-2"
-
-type="number"
-
-step="0.01"
-
-name="maquina4"
-
-id="maquina4"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-</div>
-
-
-
-
-
-
-
-
-
-<hr>
-
-
-
-<h5>
-
-💰 Pagamentos
-
-</h5>
-
-
-
-
-<div class="card shadow p-3">
-
-
-<label>
-
-Dinheiro
-
-</label>
-
-
-<input
-
-class="form-control mb-2"
-
-type="number"
-
-step="0.01"
-
-name="dinheiro"
-
-id="dinheiro"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-
-<label>
-
-PIX
-
-</label>
-
-
-<input
-
-class="form-control"
-
-type="number"
-
-step="0.01"
-
-name="pix"
-
-id="pix"
-
-value="0"
-
-oninput="totalizar()"
-
->
-
-
-
-
-</div>
-
-
-
-
-
-
-
-<div class="alert alert-success text-center mt-4">
-
-
-<h5>
-
-Total recebido
-
-</h5>
-
-
-<h3>
-
-R$ <span id="total">0.00</span>
-
-</h3>
-
-
-
-</div>
-
-
-
-
-
-
-
-
-<button class="btn btn-danger w-100">
-
-
-🔒 Fechar Caixa
-
-
-</button>
-
-
-
-
-</form>
-
-
-
-
-
-
-
-<a href="/dashboard"
-
-class="btn btn-secondary w-100 mt-3">
-
-
-Voltar
-
-
-</a>
-
-
-
-
-</div>
-
-
 </body>
-
 </html>

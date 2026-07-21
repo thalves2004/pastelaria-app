@@ -153,3 +153,17 @@ body {
 
 
 }
+/* Fechamento e relatórios 2.0 */
+:root{--pc-orange:#ff6b00;--pc-dark:#172033;--pc-soft:#f3f5f8;--pc-border:#e5e9f0}
+.eyebrow{font-size:.72rem;font-weight:800;letter-spacing:.14em;color:var(--pc-orange)}
+.app-card{background:#fff;border:1px solid var(--pc-border);border-radius:22px;padding:24px;box-shadow:0 10px 35px rgba(23,32,51,.07)}
+.section-heading>div{display:flex;gap:12px;align-items:flex-start}.section-heading h4{margin:0}.section-heading p{margin:3px 0 20px;color:#6c757d}.section-icon{font-size:1.7rem}
+.subheading{font-size:.82rem;text-transform:uppercase;letter-spacing:.08em;color:#6c757d;margin-bottom:12px}
+.money-input{display:flex;align-items:center;border:1px solid #dee2e6;border-radius:14px;overflow:hidden;background:#fff}.money-input span{padding-left:12px;color:#6c757d;font-weight:700}.money-input .form-control{border:0;box-shadow:none}
+.production-table thead th{background:var(--pc-soft);font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}.production-table input{min-width:76px}
+.sold-pill,.produced-pill{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:6px 12px;background:#e9f8ef;color:#15803d;font-weight:800}.produced-pill{background:#eef4ff;color:#2563eb}
+.product-card-mobile{border:1px solid var(--pc-border);border-radius:18px;padding:16px;margin-bottom:14px}.product-card-mobile label{font-size:.78rem;color:#6c757d}.mobile-result,.inline-total{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;border-radius:14px;background:var(--pc-soft)}
+.summary-card{background:linear-gradient(145deg,#172033,#293650);color:#fff;border-radius:22px;padding:25px;box-shadow:0 14px 35px rgba(23,32,51,.22)}.summary-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.11)}.summary-line.expense{color:#ffb4b4}.summary-final{display:flex;justify-content:space-between;align-items:end;margin-top:18px;padding-top:18px;border-top:2px solid rgba(255,255,255,.3)}.summary-final strong{font-size:1.6rem}
+.metric-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}.metric{background:var(--pc-soft);border-radius:16px;padding:14px}.metric span{display:block;color:#6c757d;font-size:.78rem}.metric strong{font-size:1rem}.report-details summary{cursor:pointer;font-weight:700;color:var(--pc-orange)}.detail-box{background:var(--pc-soft);border-radius:16px;padding:16px;height:100%}.detail-box p{margin:0;color:#5f6672}
+@media(max-width:992px){.metric-grid{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:600px){.app-card{padding:17px;border-radius:18px}.metric-grid{grid-template-columns:repeat(2,1fr)}.summary-final strong{font-size:1.25rem}}
