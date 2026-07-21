@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+import json
 from flask import Flask, render_template, request, redirect, session
 from database import conectar, criar_banco, ORDEM_PRODUTOS
 
@@ -20,6 +21,37 @@ def inteiro(nome):
         return max(0, int(request.form.get(nome, 0) or 0))
     except (TypeError, ValueError):
         return 0
+
+
+def ler_equipe_formulario():
+    nomes = request.form.getlist("funcionario_nome[]")
+    valores = request.form.getlist("funcionario_diaria[]")
+    equipe = []
+    for nome, valor in zip(nomes, valores):
+        nome = (nome or "").strip()
+        if not nome:
+            continue
+        try:
+            diaria = float(str(valor or "0").replace(",", "."))
+        except (TypeError, ValueError):
+            diaria = 0.0
+        equipe.append({"nome": nome, "diaria": max(0, diaria)})
+    return equipe
+
+
+def decodificar_equipe(texto, nomes_antigos=""):
+    try:
+        dados = json.loads(texto or "[]")
+        if isinstance(dados, list):
+            equipe = [
+                {"nome": str(item.get("nome", "")).strip(), "diaria": float(item.get("diaria", 0) or 0)}
+                for item in dados if isinstance(item, dict) and str(item.get("nome", "")).strip()
+            ]
+            if equipe:
+                return equipe
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
+    return [{"nome": n.strip(), "diaria": 0} for n in str(nomes_antigos or "").split(",") if n.strip()]
 
 
 def ordenar_produtos(lista, indice_nome):
@@ -151,9 +183,12 @@ def fechamento():
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
         outras = numero("outras_despesas")
-        equipe_dia = request.form.get("equipe_dia", "").strip()
+        equipe = ler_equipe_formulario()
+        equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
+        equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
+        diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
         total_bruto = m1 + m2 + m3 + m4 + dinheiro + pix
-        total_liquido = total_bruto - descontos - fornecedores - seguranca - outras
+        total_liquido = total_bruto - descontos - fornecedores - seguranca - outras - diarias_total
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
@@ -161,10 +196,12 @@ def fechamento():
                 dinheiro_50=0,dinheiro_100=0,dinheiro_200=0,
                 sobra_pasteis=%s,consumo_pasteis=%s,
                 descontos=%s,fornecedores=%s,seguranca=%s,outras_despesas=%s,
-                equipe_dia=%s,status='FECHADO' WHERE id=%s
+                equipe_dia=%s,equipe_detalhes=%s,diarias_total=%s,
+                status='FECHADO' WHERE id=%s
         """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
               total_sobra_pasteis,total_consumo_pasteis,
-              descontos,fornecedores,seguranca,outras,equipe_dia,controle[0]))
+              descontos,fornecedores,seguranca,outras,equipe_dia,equipe_detalhes,
+              diarias_total,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
 
@@ -222,7 +259,8 @@ def relatorios():
         SELECT id,data,usuario,caixa_inicial,caixa_final,maquina1,maquina2,maquina3,
         maquina4,dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
-        seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,equipe_dia FROM controle
+        seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,
+        equipe_dia,equipe_detalhes,diarias_total FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -240,7 +278,8 @@ def relatorios():
             WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
         """, (controle[0],))
         itens = ordenar_produtos(cursor.fetchall(), 0)
-        relatorios.append((controle,itens))
+        equipe = decodificar_equipe(controle[30] if len(controle) > 30 else "", controle[29] if len(controle) > 29 else "")
+        relatorios.append((controle,itens,equipe))
     cursor.close(); conn.close()
     return render_template("relatorios.html", relatorios=relatorios, data_filtro=data_filtro)
 
@@ -319,10 +358,13 @@ def editar_relatorio(id):
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
         outras = numero("outras_despesas")
-        equipe_dia = request.form.get("equipe_dia", "").strip()
+        equipe = ler_equipe_formulario()
+        equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
+        equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
+        diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
         caixa_final = (
             m1 + m2 + m3 + m4 + pix + dinheiro
-            - descontos - fornecedores - seguranca - outras
+            - descontos - fornecedores - seguranca - outras - diarias_total
         )
 
         cursor.execute("""
@@ -331,12 +373,14 @@ def editar_relatorio(id):
                 maquina4=%s, dinheiro=%s, pix=%s, troco_total=%s,
                 dinheiro_grande=%s, dinheiro_50=0, dinheiro_100=0, dinheiro_200=0,
                 sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
-                fornecedores=%s, seguranca=%s, outras_despesas=%s, equipe_dia=%s
+                fornecedores=%s, seguranca=%s, outras_despesas=%s, equipe_dia=%s,
+                equipe_detalhes=%s, diarias_total=%s
             WHERE id=%s
         """, (
             caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
             dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
-            descontos, fornecedores, seguranca, outras, equipe_dia, id,
+            descontos, fornecedores, seguranca, outras, equipe_dia,
+            equipe_detalhes, diarias_total, id,
         ))
         conn.commit()
         cursor.close()
@@ -350,13 +394,15 @@ def editar_relatorio(id):
                troco_total,
                COALESCE(NULLIF(dinheiro_grande, 0),
                         COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0)),
-               COALESCE(equipe_dia, '')
+               COALESCE(equipe_dia, ''), COALESCE(equipe_detalhes, '[]'),
+               COALESCE(diarias_total, 0)
         FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone()
+    equipe = decodificar_equipe(controle[19] if len(controle) > 19 else "", controle[18] if len(controle) > 18 else "")
     cursor.close()
     conn.close()
-    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas)
+    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas, equipe=equipe)
 
 
 @app.route("/excluir_relatorio/<int:id>")

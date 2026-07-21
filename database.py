@@ -38,7 +38,13 @@ ORDEM_PRODUTOS = {nome.lower(): indice for indice, (nome, _) in enumerate(PRODUT
 def normalizar_nome_produto(nome):
     texto = unicodedata.normalize("NFKD", str(nome or ""))
     texto = "".join(c for c in texto if not unicodedata.combining(c))
-    return re.sub(r"\s+", " ", texto).strip().lower()
+    chave = re.sub(r"\s+", " ", texto).strip().lower()
+    # "Pastelão de carne" e "Pastelão" representam o mesmo produto.
+    aliases = {
+        "pastelao de carne": "pastelao",
+        "pastelao carne": "pastelao",
+    }
+    return aliases.get(chave, chave)
 
 
 def consolidar_produtos_repetidos(cursor):
@@ -184,6 +190,8 @@ def criar_banco():
             "seguranca": "NUMERIC(12,2) DEFAULT 0",
             "outras_despesas": "NUMERIC(12,2) DEFAULT 0",
             "equipe_dia": "TEXT DEFAULT ''",
+            "equipe_detalhes": "TEXT DEFAULT '[]'",
+            "diarias_total": "NUMERIC(12,2) DEFAULT 0",
         }
         for nome, tipo in colunas_controle.items():
             cursor.execute(f"ALTER TABLE controle ADD COLUMN IF NOT EXISTS {nome} {tipo}")

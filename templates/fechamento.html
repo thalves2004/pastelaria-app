@@ -66,10 +66,12 @@
         <div class="inline-total mt-3"><span>Total em dinheiro</span><strong>R$ <span id="total-dinheiro">0,00</span></strong></div>
       </section></div>
 
-      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Despesas diárias</h4><p>Registre as despesas e quem trabalhou no dia.</p></div></div></div><div class="row g-3">
-        <div class="col-12"><label for="equipe_dia">Quem trabalhou no dia</label><input type="text" name="equipe_dia" id="equipe_dia" class="form-control" placeholder="Ex.: Thomas, João e Maria"></div>
-        {% for campo, rotulo in [('descontos','Descontos'),('fornecedores','Fornecedores'),('seguranca','Segurança'),('outras_despesas','Outras despesas')] %}<div class="col-sm-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="{{ campo }}" id="{{ campo }}" value="0" class="form-control valor-despesa"></div></div>{% endfor %}
-      </div></section></div>
+      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Despesas diárias</h4><p>Adicione cada pessoa e o valor da diária separadamente.</p></div></div></div>
+        <div id="lista-equipe"></div>
+        <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="adicionar-pessoa">+ Adicionar pessoa</button>
+        <div class="inline-total mb-3"><span>Total das diárias</span><strong>R$ <span id="total-diarias">0,00</span></strong></div>
+        <div class="row g-3">{% for campo, rotulo in [('descontos','Descontos'),('fornecedores','Fornecedores'),('seguranca','Segurança'),('outras_despesas','Outras despesas')] %}<div class="col-sm-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="{{ campo }}" id="{{ campo }}" value="0" class="form-control valor-despesa"></div></div>{% endfor %}</div>
+      </section></div>
 
       <div class="col-lg-6"><section class="summary-card h-100"><span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span><h4 class="mb-4">Conferência do fechamento</h4>
         <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total bruto</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line expense"><span>Despesas e descontos</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-final"><span>Total líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
@@ -87,10 +89,21 @@ function totalizar(){
   const maquinas=valor('maquina1')+valor('maquina2')+valor('maquina3')+valor('maquina4');
   const pix=valor('pix');
   const dinheiro=['troco_total','dinheiro_grande'].reduce((s,id)=>s+valor(id),0);
-  const despesas=['descontos','fornecedores','seguranca','outras_despesas'].reduce((s,id)=>s+valor(id),0);
+  const diarias=[...document.querySelectorAll('.valor-diaria')].reduce((s,e)=>s+Number(e.value||0),0);
+  const despesas=['descontos','fornecedores','seguranca','outras_despesas'].reduce((s,id)=>s+valor(id),0)+diarias;
+  document.getElementById('total-diarias').textContent=moeda(diarias);
   const bruto=maquinas+pix+dinheiro, liquido=bruto-despesas;
   document.getElementById('total-dinheiro').textContent=moeda(dinheiro); document.getElementById('resumo-maquinas').textContent=moeda(maquinas); document.getElementById('resumo-pix').textContent=moeda(pix); document.getElementById('resumo-dinheiro').textContent=moeda(dinheiro); document.getElementById('total-bruto').textContent=moeda(bruto); document.getElementById('total-despesas').textContent=moeda(despesas); document.getElementById('total-liquido').textContent=moeda(liquido);
 }
+function adicionarPessoa(nome='', diaria=''){
+  const linha=document.createElement('div'); linha.className='row g-2 align-items-end mb-2 equipe-linha';
+  linha.innerHTML=`<div class="col-7"><label>Nome</label><input class="form-control" name="funcionario_nome[]" value="${nome}" placeholder="Nome da pessoa" required></div><div class="col-4"><label>Valor da diária</label><div class="money-input"><span>R$</span><input class="form-control valor-diaria" type="number" step="0.01" min="0" name="funcionario_diaria[]" value="${diaria}"></div></div><div class="col-1"><button type="button" class="btn btn-outline-danger w-100 remover-pessoa">×</button></div>`;
+  linha.querySelector('.remover-pessoa').onclick=()=>{linha.remove();totalizar()};
+  linha.querySelector('.valor-diaria').addEventListener('input',totalizar);
+  document.getElementById('lista-equipe').appendChild(linha);
+}
+document.getElementById('adicionar-pessoa').onclick=()=>adicionarPessoa();
+adicionarPessoa();
 document.querySelectorAll('.valor-caixa,.valor-despesa').forEach(el=>el.addEventListener('input',totalizar)); totalizar();
 </script>
 </body></html>

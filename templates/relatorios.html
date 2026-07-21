@@ -12,10 +12,10 @@
   <section class="app-card mb-4"><form method="GET" class="row g-3 align-items-end"><div class="col-md-8"><label>Filtrar por data</label><input type="date" name="data" class="form-control" value="{{ data_filtro or '' }}"></div><div class="col-md-4"><button class="btn btn-primary w-100">🔎 Filtrar</button></div></form></section>
 
   {% for relatorio in relatorios %}
-  {% set c = relatorio[0] %}{% set itens = relatorio[1] %}
+  {% set c = relatorio[0] %}{% set itens = relatorio[1] %}{% set equipe = relatorio[2] %}
   <article class="app-card report-card mb-4">
     <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start">
-      <div><h4 class="mb-1">📅 Caixa de {{ c[1] }}</h4><span class="text-muted">Responsável pela abertura: {{ c[2] }}</span>{% if c[29] %}<div class="mt-1"><strong>Equipe do dia:</strong> {{ c[29] }}</div>{% endif %}</div>
+      <div><h4 class="mb-1">📅 Caixa de {{ c[1] }}</h4><span class="text-muted">Responsável pela abertura: {{ c[2] }}</span>{% if equipe %}<div class="mt-1"><strong>Equipe do dia:</strong> {{ equipe|length }} pessoa(s)</div>{% endif %}</div>
       <div class="d-flex gap-2"><span class="badge {{ 'text-bg-danger' if c[11] == 'FECHADO' else 'text-bg-success' }}">{{ c[11] }}</span><a href="/editar_relatorio/{{ c[0] }}" class="btn btn-warning btn-sm">✏️ Editar</a><a href="/excluir_relatorio/{{ c[0] }}" class="btn btn-danger btn-sm" onclick="return confirm('Excluir este relatório?')">🗑 Excluir</a></div>
     </div>
 
@@ -25,14 +25,14 @@
       <div class="metric"><span>Máquinas</span><strong>R$ {{ "%.2f"|format((c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)) }}</strong></div>
       <div class="metric"><span>PIX</span><strong>R$ {{ "%.2f"|format(c[10] or 0) }}</strong></div>
       <div class="metric"><span>Dinheiro</span><strong>R$ {{ "%.2f"|format(c[9] or 0) }}</strong></div>
-      <div class="metric"><span>Despesas</span><strong>R$ {{ "%.2f"|format((c[21] or 0)+(c[22] or 0)+(c[23] or 0)+(c[24] or 0)) }}</strong></div>
+      <div class="metric"><span>Despesas</span><strong>R$ {{ "%.2f"|format((c[21] or 0)+(c[22] or 0)+(c[23] or 0)+(c[24] or 0)+(c[31] or 0)) }}</strong></div>
     </div>
 
     <details class="report-details mt-4">
       <summary>Ver detalhes financeiros</summary>
       <div class="row g-3 mt-1">
         <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p class="mb-0">Notas de R$ 50, R$ 100 e R$ 200: <strong>R$ {{ "%.2f"|format((c[18] or 0) if (c[18] or 0) > 0 else ((c[26] or 0)+(c[27] or 0)+(c[28] or 0))) }}</strong></p></div></div>
-        <div class="col-md-6"><div class="detail-box"><h6>Despesas diárias</h6>{% if c[29] %}<p><strong>Equipe:</strong> {{ c[29] }}</p>{% endif %}<p class="mb-0">Descontos: R$ {{ "%.2f"|format(c[21] or 0) }} · Fornecedores: R$ {{ "%.2f"|format(c[22] or 0) }} · Segurança: R$ {{ "%.2f"|format(c[23] or 0) }} · Outros: R$ {{ "%.2f"|format(c[24] or 0) }}</p></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Despesas diárias</h6>{% if equipe %}<div class="mb-2"><strong>Equipe e diárias:</strong><ul class="mb-2">{% for pessoa in equipe %}<li>{{ pessoa.nome }} — R$ {{ "%.2f"|format(pessoa.diaria or 0) }}</li>{% endfor %}</ul><strong>Total das diárias: R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div>{% endif %}<p class="mb-0">Descontos: R$ {{ "%.2f"|format(c[21] or 0) }} · Fornecedores: R$ {{ "%.2f"|format(c[22] or 0) }} · Segurança: R$ {{ "%.2f"|format(c[23] or 0) }} · Outros: R$ {{ "%.2f"|format(c[24] or 0) }}</p></div></div>
       </div>
     </details>
 
