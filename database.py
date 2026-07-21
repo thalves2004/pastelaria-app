@@ -23,11 +23,14 @@ PRODUTOS_PADRAO = [
     ("Pastelão", "pastel"), ("Pastelão de Frango", "pastel"),
     ("Enroladão", "pastel"), ("Coxinha de Carne", "pastel"),
     ("Coxinha de Frango", "pastel"),
+    ("Massa de 600 gramas", "pastel"),
     ("Coca Normal", "bebida"), ("Coca Zero", "bebida"),
     ("Sprite", "bebida"), ("Guaraná", "bebida"),
     ("Fanta", "bebida"), ("Água", "bebida"),
     ("Suco", "bebida"), ("Chocomilk", "bebida"),
 ]
+
+ORDEM_PRODUTOS = {nome.lower(): indice for indice, (nome, _) in enumerate(PRODUTOS_PADRAO)}
 
 
 def criar_banco():

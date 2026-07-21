@@ -1,6 +1,6 @@
 from decimal import Decimal, InvalidOperation
 from flask import Flask, render_template, request, redirect, session
-from database import conectar, criar_banco
+from database import conectar, criar_banco, ORDEM_PRODUTOS
 
 app = Flask(__name__)
 app.secret_key = "pastelcontrol123"
@@ -20,6 +20,10 @@ def inteiro(nome):
         return max(0, int(request.form.get(nome, 0) or 0))
     except (TypeError, ValueError):
         return 0
+
+
+def ordenar_produtos(lista, indice_nome):
+    return sorted(lista, key=lambda item: ORDEM_PRODUTOS.get(str(item[indice_nome]).lower(), 9999))
 
 
 def autenticado():
@@ -74,7 +78,7 @@ def abertura():
     if not autenticado(): return redirect("/")
     conn = conectar(); cursor = conn.cursor()
     cursor.execute("SELECT id,nome,categoria FROM produtos ORDER BY categoria,nome")
-    produtos = cursor.fetchall()
+    produtos = ordenar_produtos(cursor.fetchall(), 1)
     if request.method == "POST":
         cursor.execute("SELECT COUNT(*) FROM controle WHERE UPPER(status)='ABERTO'")
         if cursor.fetchone()[0] > 0:
@@ -109,7 +113,9 @@ def fechamento():
         FROM producao pr JOIN produtos p ON p.id=pr.produto_id
         WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
     """, (controle[0],))
-    produtos = cursor.fetchall()
+    produtos = ordenar_produtos(cursor.fetchall(), 2)
+    pasteis = [p for p in produtos if p[3].lower() == "pastel"]
+    bebidas = [p for p in produtos if p[3].lower() == "bebida"]
 
     if request.method == "POST":
         total_sobra_pasteis = 0
@@ -117,9 +123,14 @@ def fechamento():
         for producao_id, produto_id, nome, categoria, produzido in produtos:
             sobra = inteiro(f"final_{producao_id}")
             perda = inteiro(f"perda_{producao_id}")
-            brinde = inteiro(f"brinde_{producao_id}")
-            consumo = inteiro(f"consumo_{producao_id}")
-            sobra_frita = inteiro(f"sobra_frita_{producao_id}")
+            if categoria.lower() == "bebida":
+                brinde = 0
+                consumo = 0
+                sobra_frita = 0
+            else:
+                brinde = inteiro(f"brinde_{producao_id}")
+                consumo = inteiro(f"consumo_{producao_id}")
+                sobra_frita = inteiro(f"sobra_frita_{producao_id}")
             vendido = max(0, produzido - sobra - perda - brinde - consumo - sobra_frita)
             if categoria.lower() == "pastel":
                 total_sobra_pasteis += sobra + sobra_frita
@@ -157,8 +168,8 @@ def fechamento():
         return redirect("/dashboard")
 
     cursor.close(); conn.close()
-    return render_template("fechamento.html", produtos=produtos, data=controle[1],
-                           caixa_inicial=controle[2])
+    return render_template("fechamento.html", produtos=produtos, pasteis=pasteis, bebidas=bebidas,
+                           data=controle[1], caixa_inicial=controle[2])
 
 
 @app.route("/produtos")
@@ -227,7 +238,7 @@ def relatorios():
             LEFT JOIN estoque e ON e.controle_id=pr.controle_id AND e.produto_id=pr.produto_id
             WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
         """, (controle[0],))
-        itens = cursor.fetchall()
+        itens = ordenar_produtos(cursor.fetchall(), 0)
         relatorios.append((controle,itens))
     cursor.close(); conn.close()
     return render_template("relatorios.html", relatorios=relatorios, data_filtro=data_filtro)
@@ -259,7 +270,9 @@ def editar_relatorio(id):
         WHERE pr.controle_id=%s
         ORDER BY p.categoria, p.nome
     """, (id,))
-    itens = cursor.fetchall()
+    itens = ordenar_produtos(cursor.fetchall(), 2)
+    pasteis = [item for item in itens if item[3].lower() == "pastel"]
+    bebidas = [item for item in itens if item[3].lower() == "bebida"]
 
     if request.method == "POST":
         total_sobra_pasteis = 0
@@ -269,9 +282,14 @@ def editar_relatorio(id):
             saida = inteiro(f"saida_{producao_id}")
             retorno = inteiro(f"final_{producao_id}")
             perda = inteiro(f"perda_{producao_id}")
-            brinde = inteiro(f"brinde_{producao_id}")
-            consumo = inteiro(f"consumo_{producao_id}")
-            sobra_frita = inteiro(f"sobra_frita_{producao_id}")
+            if categoria.lower() == "bebida":
+                brinde = 0
+                consumo = 0
+                sobra_frita = 0
+            else:
+                brinde = inteiro(f"brinde_{producao_id}")
+                consumo = inteiro(f"consumo_{producao_id}")
+                sobra_frita = inteiro(f"sobra_frita_{producao_id}")
 
             cursor.execute(
                 "UPDATE producao SET quantidade=%s WHERE id=%s AND controle_id=%s",
@@ -335,7 +353,7 @@ def editar_relatorio(id):
     controle = cursor.fetchone()
     cursor.close()
     conn.close()
-    return render_template("editar_relatorio.html", controle=controle, itens=itens)
+    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas)
 
 
 @app.route("/excluir_relatorio/<int:id>")
