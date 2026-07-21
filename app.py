@@ -134,10 +134,8 @@ def fechamento():
         m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1,5)]
         pix = numero("pix")
         troco_total = numero("troco_total")
-        dinheiro_50 = numero("dinheiro_50")
-        dinheiro_100 = numero("dinheiro_100")
-        dinheiro_200 = numero("dinheiro_200")
-        dinheiro = troco_total + dinheiro_50 + dinheiro_100 + dinheiro_200
+        dinheiro_grande = numero("dinheiro_grande")
+        dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
@@ -147,12 +145,13 @@ def fechamento():
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
-                maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_50=%s,
-                dinheiro_100=%s,dinheiro_200=%s,sobra_pasteis=%s,consumo_pasteis=%s,
+                maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_grande=%s,
+                dinheiro_50=0,dinheiro_100=0,dinheiro_200=0,
+                sobra_pasteis=%s,consumo_pasteis=%s,
                 descontos=%s,fornecedores=%s,seguranca=%s,outras_despesas=%s,
                 status='FECHADO' WHERE id=%s
-        """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_50,
-              dinheiro_100,dinheiro_200,total_sobra_pasteis,total_consumo_pasteis,
+        """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
+              total_sobra_pasteis,total_consumo_pasteis,
               descontos,fornecedores,seguranca,outras,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
@@ -238,36 +237,105 @@ def relatorios():
 def editar_relatorio(id):
     if not autenticado() or not admin():
         return redirect("/dashboard")
-    conn = conectar(); cursor = conn.cursor()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM controle WHERE id=%s", (id,))
+    if not cursor.fetchone():
+        cursor.close()
+        conn.close()
+        return redirect("/relatorios")
+
+    cursor.execute("""
+        SELECT pr.id, p.id, p.nome, p.categoria, pr.quantidade,
+               COALESCE(e.quantidade_final, 0), COALESCE(e.perda, 0),
+               COALESCE(e.brinde, 0), COALESCE(e.consumo, 0),
+               COALESCE(e.sobra_frita, 0)
+        FROM producao pr
+        JOIN produtos p ON p.id = pr.produto_id
+        LEFT JOIN estoque e
+          ON e.controle_id = pr.controle_id AND e.produto_id = pr.produto_id
+        WHERE pr.controle_id=%s
+        ORDER BY p.categoria, p.nome
+    """, (id,))
+    itens = cursor.fetchall()
+
     if request.method == "POST":
+        total_sobra_pasteis = 0
+        total_consumo_pasteis = 0
+
+        for producao_id, produto_id, nome, categoria, quantidade, *_ in itens:
+            saida = inteiro(f"saida_{producao_id}")
+            retorno = inteiro(f"final_{producao_id}")
+            perda = inteiro(f"perda_{producao_id}")
+            brinde = inteiro(f"brinde_{producao_id}")
+            consumo = inteiro(f"consumo_{producao_id}")
+            sobra_frita = inteiro(f"sobra_frita_{producao_id}")
+
+            cursor.execute(
+                "UPDATE producao SET quantidade=%s WHERE id=%s AND controle_id=%s",
+                (saida, producao_id, id),
+            )
+            cursor.execute(
+                "DELETE FROM estoque WHERE controle_id=%s AND produto_id=%s",
+                (id, produto_id),
+            )
+            cursor.execute("""
+                INSERT INTO estoque
+                    (controle_id, produto_id, quantidade_final, perda, brinde, consumo, sobra_frita)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (id, produto_id, retorno, perda, brinde, consumo, sobra_frita))
+
+            if categoria.lower() == "pastel":
+                total_sobra_pasteis += retorno + sobra_frita
+                total_consumo_pasteis += consumo
+
         m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1, 5)]
         pix = numero("pix")
         troco_total = numero("troco_total")
-        dinheiro_50 = numero("dinheiro_50")
-        dinheiro_100 = numero("dinheiro_100")
-        dinheiro_200 = numero("dinheiro_200")
-        dinheiro = troco_total + dinheiro_50 + dinheiro_100 + dinheiro_200
+        dinheiro_grande = numero("dinheiro_grande")
+        dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
         fornecedores = numero("fornecedores")
         seguranca = numero("seguranca")
         outras = numero("outras_despesas")
-        caixa_final = m1 + m2 + m3 + m4 + pix + dinheiro - descontos - fornecedores - seguranca - outras
+        caixa_final = (
+            m1 + m2 + m3 + m4 + pix + dinheiro
+            - descontos - fornecedores - seguranca - outras
+        )
+
         cursor.execute("""
-            UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
-                maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_50=%s,
-                dinheiro_100=%s,dinheiro_200=%s,descontos=%s,fornecedores=%s,
-                seguranca=%s,outras_despesas=%s WHERE id=%s
-        """, (caixa_final,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_50,
-              dinheiro_100,dinheiro_200,descontos,fornecedores,seguranca,outras,id))
-        conn.commit(); cursor.close(); conn.close()
+            UPDATE controle SET
+                caixa_final=%s, maquina1=%s, maquina2=%s, maquina3=%s,
+                maquina4=%s, dinheiro=%s, pix=%s, troco_total=%s,
+                dinheiro_grande=%s, dinheiro_50=0, dinheiro_100=0, dinheiro_200=0,
+                sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
+                fornecedores=%s, seguranca=%s, outras_despesas=%s
+            WHERE id=%s
+        """, (
+            caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
+            dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
+            descontos, fornecedores, seguranca, outras, id,
+        ))
+        conn.commit()
+        cursor.close()
+        conn.close()
         return redirect("/relatorios")
+
     cursor.execute("""
-        SELECT id,data,usuario,caixa_inicial,caixa_final,maquina1,maquina2,maquina3,maquina4,
-        dinheiro,pix,status,descontos,fornecedores,seguranca,outras_despesas,
-        troco_total,dinheiro_50,dinheiro_100,dinheiro_200 FROM controle WHERE id=%s
+        SELECT id, data, usuario, caixa_inicial, caixa_final,
+               maquina1, maquina2, maquina3, maquina4, dinheiro, pix, status,
+               descontos, fornecedores, seguranca, outras_despesas,
+               troco_total,
+               COALESCE(NULLIF(dinheiro_grande, 0),
+                        COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0))
+        FROM controle WHERE id=%s
     """, (id,))
-    controle = cursor.fetchone(); cursor.close(); conn.close()
-    return render_template("editar_relatorio.html", controle=controle)
+    controle = cursor.fetchone()
+    cursor.close()
+    conn.close()
+    return render_template("editar_relatorio.html", controle=controle, itens=itens)
 
 
 @app.route("/excluir_relatorio/<int:id>")

@@ -31,7 +31,7 @@
     <details class="report-details mt-4">
       <summary>Ver detalhes financeiros</summary>
       <div class="row g-3 mt-1">
-        <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p class="mb-0">Notas de R$ 50: R$ {{ "%.2f"|format(c[26] or 0) }} · R$ 100: R$ {{ "%.2f"|format(c[27] or 0) }} · R$ 200: R$ {{ "%.2f"|format(c[28] or 0) }}</p></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p class="mb-0">Notas de R$ 50, R$ 100 e R$ 200: <strong>R$ {{ "%.2f"|format((c[18] or 0) if (c[18] or 0) > 0 else ((c[26] or 0)+(c[27] or 0)+(c[28] or 0))) }}</strong></p></div></div>
         <div class="col-md-6"><div class="detail-box"><h6>Descontos e despesas</h6><p class="mb-0">Descontos: R$ {{ "%.2f"|format(c[21] or 0) }} · Fornecedores: R$ {{ "%.2f"|format(c[22] or 0) }} · Segurança: R$ {{ "%.2f"|format(c[23] or 0) }} · Outros: R$ {{ "%.2f"|format(c[24] or 0) }}</p></div></div>
       </div>
     </details>

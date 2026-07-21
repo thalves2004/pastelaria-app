@@ -1,13 +1,156 @@
 <!DOCTYPE html>
-<html lang="pt-br"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Editar relatório</title><link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link rel="stylesheet" href="/static/style.css"></head>
-<body class="bg-light"><div class="container py-4"><div class="d-flex justify-content-between align-items-center mb-4"><div><span class="eyebrow">RELATÓRIO</span><h2>✏️ Editar {{ controle[1] }}</h2></div><a href="/relatorios" class="btn btn-outline-secondary">← Voltar</a></div>
-<form method="POST"><div class="row g-4">
-<section class="col-lg-6"><div class="app-card h-100"><h4>Máquinas e PIX</h4><div class="row g-3">
-{% for nome,rotulo,indice in [('maquina1','Máquina 1',5),('maquina2','Máquina 2',6),('maquina3','Máquina 3',7),('maquina4','Máquina 4',8),('pix','PIX',10)] %}<div class="col-6"><label>{{ rotulo }}</label><input class="form-control" type="number" step="0.01" min="0" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div>{% endfor %}
-</div></div></section>
-<section class="col-lg-6"><div class="app-card h-100"><h4>Dinheiro em caixa</h4><div class="row g-3">
-{% for nome,rotulo,indice in [('troco_total','Troco até R$ 20',16),('dinheiro_50','Valor em notas de R$ 50',17),('dinheiro_100','Valor em notas de R$ 100',18),('dinheiro_200','Valor em notas de R$ 200',19)] %}<div class="col-6"><label>{{ rotulo }}</label><input class="form-control" type="number" step="0.01" min="0" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div>{% endfor %}
-</div></div></section>
-<section class="col-12"><div class="app-card"><h4>Descontos e despesas</h4><div class="row g-3">
-{% for nome,rotulo,indice in [('descontos','Descontos',12),('fornecedores','Fornecedores',13),('seguranca','Segurança',14),('outras_despesas','Outras despesas',15)] %}<div class="col-md-3 col-6"><label>{{ rotulo }}</label><input class="form-control" type="number" step="0.01" min="0" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div>{% endfor %}
-</div></div></section></div><button class="btn btn-success btn-lg w-100 mt-4">💾 Recalcular e salvar</button></form></div></body></html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Editar relatório</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="bg-light">
+<div class="container py-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <div>
+      <span class="eyebrow">RELATÓRIO</span>
+      <h2 class="mb-1">✏️ Editar {{ controle[1] }}</h2>
+      <p class="text-muted mb-0">Altere os valores financeiros e os itens da produção.</p>
+    </div>
+    <a href="/relatorios" class="btn btn-outline-secondary">← Voltar</a>
+  </div>
+
+  <form method="POST" id="form-editar-relatorio">
+    <section class="app-card mb-4">
+      <div class="section-heading">
+        <div><span class="section-icon">🥟</span><div><h4>Itens do relatório</h4><p>Você pode corrigir a saída, retorno, brindes, consumo, sobra frita e perdas.</p></div></div>
+      </div>
+
+      <div class="table-responsive d-none d-lg-block">
+        <table class="table align-middle production-table">
+          <thead>
+            <tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th></tr>
+          </thead>
+          <tbody>
+            {% for item in itens %}
+            <tr>
+              <td><strong>{{ item[2] }}</strong><br><span class="badge text-bg-light">{{ item[3] }}</span></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="saida_{{ item[0] }}" value="{{ item[4] or 0 }}"></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="final_{{ item[0] }}" value="{{ item[5] or 0 }}"></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="brinde_{{ item[0] }}" value="{{ item[7] or 0 }}"></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="consumo_{{ item[0] }}" value="{{ item[8] or 0 }}"></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="sobra_frita_{{ item[0] }}" value="{{ item[9] or 0 }}"></td>
+              <td><input class="form-control form-control-sm sync-item" type="number" min="0" name="perda_{{ item[0] }}" value="{{ item[6] or 0 }}"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="d-lg-none">
+        {% for item in itens %}
+        <article class="product-card-mobile">
+          <div class="d-flex justify-content-between align-items-start mb-3">
+            <div><strong>{{ item[2] }}</strong><br><small class="text-muted">{{ item[3] }}</small></div>
+            <span class="produced-pill">Saída: {{ item[4] or 0 }}</span>
+          </div>
+          <div class="row g-2">
+            {% for nome, rotulo, valor in [
+              ('saida_' ~ item[0], 'Saída', item[4]),
+              ('final_' ~ item[0], 'Retorno', item[5]),
+              ('brinde_' ~ item[0], 'Brinde', item[7]),
+              ('consumo_' ~ item[0], 'Consumo', item[8]),
+              ('sobra_frita_' ~ item[0], 'Sobra frita', item[9]),
+              ('perda_' ~ item[0], 'Perda', item[6])
+            ] %}
+            <div class="col-6">
+              <label>{{ rotulo }}</label>
+              <input class="form-control sync-item" type="number" min="0" name="{{ nome }}" value="{{ valor or 0 }}">
+            </div>
+            {% endfor %}
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="row g-4">
+      <section class="col-lg-6">
+        <div class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">💳</span><div><h4>Máquinas e PIX</h4><p>Corrija os totais de cada meio de pagamento.</p></div></div></div>
+          <div class="row g-3">
+            {% for nome,rotulo,indice in [('maquina1','Máquina 1',5),('maquina2','Máquina 2',6),('maquina3','Máquina 3',7),('maquina4','Máquina 4',8),('pix','PIX',10)] %}
+            <div class="{{ 'col-12' if nome == 'pix' else 'col-6' }}">
+              <label>{{ rotulo }}</label>
+              <div class="money-input"><span>R$</span><input class="form-control valor-caixa" type="number" step="0.01" min="0" id="{{ nome }}" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div>
+            </div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="col-lg-6">
+        <div class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">💵</span><div><h4>Dinheiro em caixa</h4><p>Informe valores em reais, não a quantidade de notas.</p></div></div></div>
+          <label>Troco — valores até R$ 20</label>
+          <div class="money-input"><span>R$</span><input class="form-control valor-caixa" type="number" step="0.01" min="0" id="troco_total" name="troco_total" value="{{ controle[16] or 0 }}"></div>
+          <label class="mt-3">Dinheiro — notas de R$ 50, R$ 100 e R$ 200</label>
+          <div class="money-input"><span>R$</span><input class="form-control valor-caixa" type="number" step="0.01" min="0" id="dinheiro_grande" name="dinheiro_grande" value="{{ controle[17] or 0 }}"></div>
+          <div class="inline-total mt-3"><span>Total em dinheiro</span><strong>R$ <span id="total-dinheiro">0,00</span></strong></div>
+        </div>
+      </section>
+
+      <section class="col-lg-6">
+        <div class="app-card h-100">
+          <div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Descontos e despesas</h4><p>Valores descontados do total bruto.</p></div></div></div>
+          <div class="row g-3">
+            {% for nome,rotulo,indice in [('descontos','Descontos',12),('fornecedores','Fornecedores',13),('seguranca','Segurança',14),('outras_despesas','Outras despesas',15)] %}
+            <div class="col-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input class="form-control valor-despesa" type="number" step="0.01" min="0" id="{{ nome }}" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div></div>
+            {% endfor %}
+          </div>
+        </div>
+      </section>
+
+      <section class="col-lg-6">
+        <div class="summary-card h-100">
+          <span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span>
+          <h4 class="mb-4">Conferência da edição</h4>
+          <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div>
+          <div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div>
+          <div class="summary-line"><span>Dinheiro</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div>
+          <div class="summary-line"><span>Total bruto</span><strong>R$ <span id="total-bruto">0,00</span></strong></div>
+          <div class="summary-line expense"><span>Despesas e descontos</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div>
+          <div class="summary-final"><span>Total líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
+        </div>
+      </section>
+    </div>
+
+    <button class="btn btn-success btn-lg w-100 mt-4 py-3" type="submit">💾 Recalcular e salvar relatório</button>
+  </form>
+</div>
+<script>
+const moeda = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const valor = id => Number(document.getElementById(id)?.value || 0);
+document.querySelectorAll('.sync-item').forEach(input => input.addEventListener('input', e => {
+  document.querySelectorAll(`[name="${e.target.name}"]`).forEach(outro => {
+    if (outro !== e.target) outro.value = e.target.value;
+  });
+}));
+function totalizar(){
+  const maquinas=valor('maquina1')+valor('maquina2')+valor('maquina3')+valor('maquina4');
+  const pix=valor('pix');
+  const dinheiro=valor('troco_total')+valor('dinheiro_grande');
+  const despesas=['descontos','fornecedores','seguranca','outras_despesas'].reduce((s,id)=>s+valor(id),0);
+  const bruto=maquinas+pix+dinheiro;
+  const liquido=bruto-despesas;
+  document.getElementById('total-dinheiro').textContent=moeda(dinheiro);
+  document.getElementById('resumo-maquinas').textContent=moeda(maquinas);
+  document.getElementById('resumo-pix').textContent=moeda(pix);
+  document.getElementById('resumo-dinheiro').textContent=moeda(dinheiro);
+  document.getElementById('total-bruto').textContent=moeda(bruto);
+  document.getElementById('total-despesas').textContent=moeda(despesas);
+  document.getElementById('total-liquido').textContent=moeda(liquido);
+}
+document.querySelectorAll('.valor-caixa,.valor-despesa').forEach(el=>el.addEventListener('input',totalizar));
+totalizar();
+</script>
+</body>
+</html>
