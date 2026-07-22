@@ -10,7 +10,7 @@
 <body class="bg-light">
 <div class="container py-4 fechamento-page">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <div><span class="eyebrow">PASTELCONTROL</span><h2 class="mb-1">🌙 Fechamento do dia</h2><p class="text-muted mb-0">{{ data }} · Caixa inicial: R$ {{ "%.2f"|format(caixa_inicial or 0) }}</p></div>
+    <div><span class="eyebrow">PASTELCONTROL</span><h2 class="mb-1">🌙 Fechamento do dia</h2><p class="text-muted mb-0">{{ data }}{% if is_admin %} · Caixa inicial: R$ {{ "%.2f"|format(caixa_inicial or 0) }}{% endif %}</p></div>
     <a href="/dashboard" class="btn btn-outline-secondary">← Voltar</a>
   </div>
 
@@ -19,16 +19,16 @@
       <div class="section-heading"><div><span class="section-icon">🥟</span><div><h4>Pastéis, salgados e massa</h4><p>Informe retorno, brindes, consumo interno, sobra frita e perdas.</p></div></div></div>
       <div class="table-responsive d-none d-lg-block">
         <table class="table align-middle production-table">
-          <thead><tr><th>Produto</th><th>Valor</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th></tr></thead>
+          <thead><tr><th>Produto</th>{% if is_admin %}<th>Valor</th>{% endif %}<th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th></tr></thead>
           <tbody>{% for produto in pasteis %}<tr>
-            <td><strong>{{ produto[2] }}</strong></td><td>R$ {{ "%.2f"|format(produto[5] or 0) }}</td><td class="fw-bold text-primary">{{ produto[4] }}</td>
+            <td><strong>{{ produto[2] }}</strong></td>{% if is_admin %}<td>R$ {{ "%.2f"|format(produto[5] or 0) }}</td>{% endif %}<td class="fw-bold text-primary">{{ produto[4] }}</td>
             {% for campo in ['final','brinde','consumo','sobra_frita','perda'] %}<td><input class="form-control form-control-sm sync-produto campo-venda" type="number" min="0" value="0" name="{{ campo }}_{{ produto[0] }}" data-producao="{{ produto[0] }}"></td>{% endfor %}
             <td><strong class="text-success vendido-item" data-id="{{ produto[0] }}" data-saida="{{ produto[4] }}" data-tipo="pastel">{{ produto[4] }}</strong></td>
           </tr>{% endfor %}</tbody>
         </table>
       </div>
       <div class="d-lg-none">{% for produto in pasteis %}<article class="product-card-mobile">
-        <div class="d-flex justify-content-between align-items-start mb-3"><div><strong>{{ produto[2] }}</strong><div class="small text-muted">R$ {{ "%.2f"|format(produto[5] or 0) }}</div></div><span class="produced-pill">Saída: {{ produto[4] }}</span></div>
+        <div class="d-flex justify-content-between align-items-start mb-3"><div><strong>{{ produto[2] }}</strong>{% if is_admin %}<div class="small text-muted">R$ {{ "%.2f"|format(produto[5] or 0) }}</div>{% endif %}</div><span class="produced-pill">Saída: {{ produto[4] }}</span></div>
         <div class="row g-2">{% for campo, rotulo in [('final','Retorno'),('brinde','Brinde'),('consumo','Consumo'),('sobra_frita','Sobra frita'),('perda','Perda')] %}<div class="col-6"><label>{{ rotulo }}</label><input class="form-control sync-produto campo-venda" type="number" min="0" value="0" name="{{ campo }}_{{ produto[0] }}" data-producao="{{ produto[0] }}"></div>{% endfor %}</div>
         <div class="inline-total mt-3"><span>Quantidade vendida</span><strong class="text-success vendido-item" data-id="{{ produto[0] }}" data-saida="{{ produto[4] }}" data-tipo="pastel">{{ produto[4] }}</strong></div>
       </article>{% endfor %}</div>
@@ -38,9 +38,9 @@
       <div class="section-heading"><div><span class="section-icon">🥤</span><div><h4>Bebidas</h4><p>Para bebidas, informe retorno, consumo e perda.</p></div></div></div>
       <div class="table-responsive d-none d-lg-block">
         <table class="table align-middle production-table">
-          <thead><tr><th>Produto</th><th>Valor</th><th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th><th>Vendido</th></tr></thead>
+          <thead><tr><th>Produto</th>{% if is_admin %}<th>Valor</th>{% endif %}<th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th><th>Vendido</th></tr></thead>
           <tbody>{% for produto in bebidas %}<tr>
-            <td><strong>{{ produto[2] }}</strong></td><td>R$ {{ "%.2f"|format(produto[5] or 0) }}</td><td class="fw-bold text-primary">{{ produto[4] }}</td>
+            <td><strong>{{ produto[2] }}</strong></td>{% if is_admin %}<td>R$ {{ "%.2f"|format(produto[5] or 0) }}</td>{% endif %}<td class="fw-bold text-primary">{{ produto[4] }}</td>
             <td><input class="form-control form-control-sm sync-produto campo-venda" type="number" min="0" value="0" name="final_{{ produto[0] }}" data-producao="{{ produto[0] }}"></td>
             <td><input class="form-control form-control-sm sync-produto campo-venda" type="number" min="0" value="0" name="consumo_{{ produto[0] }}" data-producao="{{ produto[0] }}"></td>
             <td><input class="form-control form-control-sm sync-produto campo-venda" type="number" min="0" value="0" name="perda_{{ produto[0] }}" data-producao="{{ produto[0] }}"></td>
@@ -49,12 +49,13 @@
         </table>
       </div>
       <div class="d-lg-none">{% for produto in bebidas %}<article class="product-card-mobile">
-        <div class="d-flex justify-content-between align-items-start mb-3"><div><strong>{{ produto[2] }}</strong><div class="small text-muted">R$ {{ "%.2f"|format(produto[5] or 0) }}</div></div><span class="produced-pill">Saída: {{ produto[4] }}</span></div>
+        <div class="d-flex justify-content-between align-items-start mb-3"><div><strong>{{ produto[2] }}</strong>{% if is_admin %}<div class="small text-muted">R$ {{ "%.2f"|format(produto[5] or 0) }}</div>{% endif %}</div><span class="produced-pill">Saída: {{ produto[4] }}</span></div>
         <div class="row g-2"><div class="col-4"><label>Retorno</label><input class="form-control sync-produto campo-venda" type="number" min="0" value="0" name="final_{{ produto[0] }}" data-producao="{{ produto[0] }}"></div><div class="col-4"><label>Consumo</label><input class="form-control sync-produto campo-venda" type="number" min="0" value="0" name="consumo_{{ produto[0] }}" data-producao="{{ produto[0] }}"></div><div class="col-4"><label>Perda</label><input class="form-control sync-produto campo-venda" type="number" min="0" value="0" name="perda_{{ produto[0] }}" data-producao="{{ produto[0] }}"></div></div>
         <div class="inline-total mt-3"><span>Quantidade vendida</span><strong class="text-success vendido-item" data-id="{{ produto[0] }}" data-saida="{{ produto[4] }}" data-tipo="bebida">{{ produto[4] }}</strong></div>
       </article>{% endfor %}</div>
     </section>
 
+    {% if is_admin %}
     <div class="row g-4">
       <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">💳</span><div><h4>Máquinas e PIX</h4><p>Digite o valor total apresentado em cada meio.</p></div></div></div><div class="row g-3">
         {% for i in range(1,5) %}<div class="col-6"><label>Máquina {{ i }}</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="maquina{{ i }}" id="maquina{{ i }}" value="0" class="form-control valor-caixa"></div></div>{% endfor %}
@@ -91,14 +92,18 @@
         <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total encontrado no fechamento</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Faturamento bruto</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line expense"><span>Diárias a pagar após fechar</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-final"><span>Resultado líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
       </section></div>
     </div>
+    {% else %}
+    <div class="alert alert-info mt-4">🔒 Fechamento operacional: registre apenas retorno, consumo, brindes, sobras e perdas. Os dados financeiros serão preenchidos pelo administrador.</div>
+    {% endif %}
     <button class="btn btn-danger btn-lg w-100 mt-4 py-3" type="submit" onclick="return confirm('Confirma o fechamento do caixa?')">🔒 Finalizar fechamento</button>
   </form>
 </div>
 <script>
-const moeda = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const valor = id => Number(document.getElementById(id)?.value || 0);
 // Sincroniza os campos duplicados das versões desktop e celular.
-document.querySelectorAll('.sync-produto').forEach(input => input.addEventListener('input', e => { document.querySelectorAll(`[name="${e.target.name}"]`).forEach(outro => { if(outro!==e.target) outro.value=e.target.value; }); atualizarVendidos(); }));
+document.querySelectorAll('.sync-produto').forEach(input => input.addEventListener('input', e => {
+  document.querySelectorAll(`[name="${e.target.name}"]`).forEach(outro => { if(outro!==e.target) outro.value=e.target.value; });
+  atualizarVendidos();
+}));
 function primeiroValor(nome){ const campo=document.querySelector(`[name="${nome}"]`); return Number(campo?.value || 0); }
 function atualizarVendidos(){
   document.querySelectorAll('.vendido-item').forEach(el=>{
@@ -108,6 +113,11 @@ function atualizarVendidos(){
     el.textContent=Math.max(0,vendido);
   });
 }
+atualizarVendidos();
+
+{% if is_admin %}
+const moeda = v => v.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+const valor = id => Number(document.getElementById(id)?.value || 0);
 function totalizar(){
   const maquinas=valor('maquina1')+valor('maquina2')+valor('maquina3')+valor('maquina4');
   const pix=valor('pix');
@@ -117,7 +127,15 @@ function totalizar(){
   document.getElementById('total-diarias').textContent=moeda(diarias);
   document.getElementById('total-despesas-feira').textContent=moeda(despesasFeira);
   const apurado=maquinas+pix+dinheiro, faturamento=apurado+despesasFeira, liquido=apurado-diarias;
-  document.getElementById('total-dinheiro').textContent=moeda(dinheiro); document.getElementById('resumo-maquinas').textContent=moeda(maquinas); document.getElementById('resumo-pix').textContent=moeda(pix); document.getElementById('resumo-dinheiro').textContent=moeda(dinheiro); document.getElementById('total-bruto').textContent=moeda(apurado); document.getElementById('resumo-despesas-feira').textContent=moeda(despesasFeira); document.getElementById('faturamento-estimado').textContent=moeda(faturamento); document.getElementById('total-despesas').textContent=moeda(diarias); document.getElementById('total-liquido').textContent=moeda(liquido);
+  document.getElementById('total-dinheiro').textContent=moeda(dinheiro);
+  document.getElementById('resumo-maquinas').textContent=moeda(maquinas);
+  document.getElementById('resumo-pix').textContent=moeda(pix);
+  document.getElementById('resumo-dinheiro').textContent=moeda(dinheiro);
+  document.getElementById('total-bruto').textContent=moeda(apurado);
+  document.getElementById('resumo-despesas-feira').textContent=moeda(despesasFeira);
+  document.getElementById('faturamento-estimado').textContent=moeda(faturamento);
+  document.getElementById('total-despesas').textContent=moeda(diarias);
+  document.getElementById('total-liquido').textContent=moeda(liquido);
 }
 function adicionarPessoa(nome='', diaria=''){
   const linha=document.createElement('div'); linha.className='row g-2 align-items-end mb-2 equipe-linha';
@@ -136,6 +154,8 @@ function adicionarDespesa(nome='', valorDespesa=''){
 document.getElementById('adicionar-pessoa').onclick=()=>adicionarPessoa();
 document.getElementById('adicionar-despesa').onclick=()=>adicionarDespesa();
 adicionarPessoa(); adicionarDespesa();
-document.querySelectorAll('.valor-caixa').forEach(el=>el.addEventListener('input',totalizar)); atualizarVendidos(); totalizar();
+document.querySelectorAll('.valor-caixa').forEach(el=>el.addEventListener('input',totalizar));
+totalizar();
+{% endif %}
 </script>
 </body></html>

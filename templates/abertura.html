@@ -15,7 +15,7 @@
     <div>
       <span class="eyebrow">PASTELCONTROL</span>
       <h2 class="mb-1">🌅 Abertura do dia</h2>
-      <p class="text-muted mb-0">Informe o caixa inicial e a quantidade preparada de cada item.</p>
+      <p class="text-muted mb-0">{{ 'Informe o caixa inicial e a quantidade preparada de cada item.' if is_admin else 'Informe a data e a quantidade preparada de cada item.' }}</p>
     </div>
     <a href="/dashboard" class="btn btn-outline-secondary">← Voltar</a>
   </div>
@@ -23,17 +23,17 @@
   <form method="POST" id="form-abertura">
     <section class="app-card mb-4">
       <div class="section-heading">
-        <div><span class="section-icon">📅</span><div><h4>Informações da abertura</h4><p>Escolha a data e informe o valor disponível para troco.</p></div></div>
+        <div><span class="section-icon">📅</span><div><h4>Informações da abertura</h4><p>{{ 'Escolha a data e informe o valor disponível para troco.' if is_admin else 'Escolha a data da feira.' }}</p></div></div>
       </div>
       <div class="row g-3">
         <div class="col-md-6">
           <label for="data">Data</label>
           <input type="date" name="data" id="data" class="form-control form-control-lg" required>
         </div>
-        <div class="col-md-6">
+        {% if is_admin %}<div class="col-md-6">
           <label for="caixa">Caixa inicial</label>
           <div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="caixa" id="caixa" value="0" class="form-control form-control-lg" required></div>
-        </div>
+        </div>{% endif %}
       </div>
     </section>
 

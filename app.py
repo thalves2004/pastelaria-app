@@ -189,7 +189,7 @@ def abertura():
         cursor.execute("""
             INSERT INTO controle (data,usuario,caixa_inicial,status)
             VALUES (%s,%s,%s,'ABERTO') RETURNING id
-        """, (request.form.get("data"), session["usuario"], numero("caixa")))
+        """, (request.form.get("data"), session["usuario"], numero("caixa") if admin() else Decimal("0")))
         controle_id = cursor.fetchone()[0]
         for produto in produtos:
             cursor.execute("INSERT INTO producao (controle_id,produto_id,quantidade,valor_unitario) VALUES (%s,%s,%s,%s)",
@@ -202,7 +202,7 @@ def abertura():
         if dia_semana in padroes:
             padroes[dia_semana][str(produto_id)] = quantidade or 0
     cursor.close(); conn.close()
-    return render_template("abertura.html", produtos=produtos, padroes=padroes,
+    return render_template("abertura.html", produtos=produtos, padroes=padroes, is_admin=admin(),
                            pasteis=[p for p in produtos if p[2].lower() == "pastel"],
                            bebidas=[p for p in produtos if p[2].lower() == "bebida"])
 
@@ -250,20 +250,28 @@ def fechamento():
                 VALUES (%s,%s,%s,%s,%s,%s,%s)
             """, (controle[0], produto_id, sobra, perda, brinde, consumo, sobra_frita))
 
-        m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1,5)]
-        pix = numero("pix")
-        troco_total = numero("troco_total")
-        dinheiro_grande = numero("dinheiro_grande")
-        dinheiro = troco_total + dinheiro_grande
-        descontos = numero("descontos")
-        dinheiro_adicionado = numero("dinheiro_adicionado")
-        despesas = ler_despesas_formulario()
-        despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
-        despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
-        equipe = ler_equipe_formulario()
-        equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
-        equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
-        diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
+        if admin():
+            m1, m2, m3, m4 = [numero(f"maquina{i}") for i in range(1,5)]
+            pix = numero("pix")
+            troco_total = numero("troco_total")
+            dinheiro_grande = numero("dinheiro_grande")
+            dinheiro = troco_total + dinheiro_grande
+            descontos = numero("descontos")
+            dinheiro_adicionado = numero("dinheiro_adicionado")
+            despesas = ler_despesas_formulario()
+            despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
+            despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
+            equipe = ler_equipe_formulario()
+            equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
+            equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
+            diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
+        else:
+            # Funcionários registram apenas a movimentação dos produtos.
+            # Nenhum valor financeiro é exibido ou recebido pelo formulário.
+            m1 = m2 = m3 = m4 = pix = troco_total = dinheiro_grande = dinheiro = Decimal("0")
+            descontos = dinheiro_adicionado = despesas_durante_total = diarias_total = Decimal("0")
+            despesas_detalhes = equipe_detalhes = "[]"
+            equipe_dia = ""
         total_apurado = m1 + m2 + m3 + m4 + dinheiro + pix
         # Despesas pagas durante a feira já saíram do caixa e não podem ser descontadas novamente.
         # Somente as diárias são pagas depois do fechamento.
@@ -287,7 +295,101 @@ def fechamento():
 
     cursor.close(); conn.close()
     return render_template("fechamento.html", produtos=produtos, pasteis=pasteis, bebidas=bebidas,
-                           data=controle[1], caixa_inicial=controle[2])
+                           data=controle[1], caixa_inicial=controle[2], is_admin=admin())
+
+
+@app.route("/movimentacao")
+def movimentacao():
+    if not autenticado():
+        return redirect("/")
+
+    data_inicio = request.args.get("inicio") or ""
+    data_fim = request.args.get("fim") or ""
+    categoria = (request.args.get("categoria") or "").lower()
+    produto_id = request.args.get("produto_id") or ""
+
+    filtros = ["UPPER(c.status)='FECHADO'"]
+    parametros = []
+    if data_inicio:
+        filtros.append("c.data >= %s")
+        parametros.append(data_inicio)
+    if data_fim:
+        filtros.append("c.data <= %s")
+        parametros.append(data_fim)
+    if categoria in ("pastel", "bebida"):
+        filtros.append("LOWER(p.categoria) = %s")
+        parametros.append(categoria)
+    if produto_id.isdigit():
+        filtros.append("p.id = %s")
+        parametros.append(int(produto_id))
+
+    where = " AND ".join(filtros)
+    conn = conectar(); cursor = conn.cursor()
+    cursor.execute("SELECT id,nome,categoria FROM produtos ORDER BY categoria,nome")
+    produtos = ordenar_produtos(cursor.fetchall(), 1)
+
+    cursor.execute(f"""
+        SELECT p.id, p.nome, p.categoria,
+               COALESCE(SUM(pr.quantidade),0) AS saida,
+               COALESCE(SUM(e.quantidade_final),0) AS retorno,
+               COALESCE(SUM(e.perda),0) AS perdas,
+               COALESCE(SUM(e.brinde),0) AS brindes,
+               COALESCE(SUM(e.consumo),0) AS consumo,
+               COALESCE(SUM(e.sobra_frita),0) AS sobra_frita,
+               COALESCE(SUM(GREATEST(0,
+                   pr.quantidade - COALESCE(e.quantidade_final,0) - COALESCE(e.perda,0)
+                   - COALESCE(e.consumo,0)
+                   - CASE WHEN LOWER(p.categoria)='pastel'
+                          THEN COALESCE(e.brinde,0)+COALESCE(e.sobra_frita,0) ELSE 0 END
+               )),0) AS vendido
+        FROM producao pr
+        JOIN controle c ON c.id=pr.controle_id
+        JOIN produtos p ON p.id=pr.produto_id
+        LEFT JOIN estoque e ON e.controle_id=pr.controle_id AND e.produto_id=pr.produto_id
+        WHERE {where}
+        GROUP BY p.id,p.nome,p.categoria
+        ORDER BY vendido DESC,p.nome
+    """, parametros)
+    resumo_produtos = cursor.fetchall()
+
+    cursor.execute(f"""
+        SELECT c.data,
+               COALESCE(SUM(pr.quantidade),0) AS saida,
+               COALESCE(SUM(e.quantidade_final),0) AS retorno,
+               COALESCE(SUM(e.perda),0) AS perdas,
+               COALESCE(SUM(e.brinde),0) AS brindes,
+               COALESCE(SUM(e.consumo),0) AS consumo,
+               COALESCE(SUM(e.sobra_frita),0) AS sobra_frita,
+               COALESCE(SUM(GREATEST(0,
+                   pr.quantidade - COALESCE(e.quantidade_final,0) - COALESCE(e.perda,0)
+                   - COALESCE(e.consumo,0)
+                   - CASE WHEN LOWER(p.categoria)='pastel'
+                          THEN COALESCE(e.brinde,0)+COALESCE(e.sobra_frita,0) ELSE 0 END
+               )),0) AS vendido
+        FROM producao pr
+        JOIN controle c ON c.id=pr.controle_id
+        JOIN produtos p ON p.id=pr.produto_id
+        LEFT JOIN estoque e ON e.controle_id=pr.controle_id AND e.produto_id=pr.produto_id
+        WHERE {where}
+        GROUP BY c.data
+        ORDER BY c.data DESC
+    """, parametros)
+    resumo_dias = cursor.fetchall()
+    cursor.close(); conn.close()
+
+    totais = {
+        "saida": sum(int(r[3] or 0) for r in resumo_produtos),
+        "retorno": sum(int(r[4] or 0) for r in resumo_produtos),
+        "perdas": sum(int(r[5] or 0) for r in resumo_produtos),
+        "brindes": sum(int(r[6] or 0) for r in resumo_produtos),
+        "consumo": sum(int(r[7] or 0) for r in resumo_produtos),
+        "sobra_frita": sum(int(r[8] or 0) for r in resumo_produtos),
+        "vendido": sum(int(r[9] or 0) for r in resumo_produtos),
+    }
+    return render_template("movimentacao.html", produtos=produtos,
+                           resumo_produtos=resumo_produtos, resumo_dias=resumo_dias,
+                           totais=totais, inicio=data_inicio, fim=data_fim,
+                           categoria=categoria, produto_id=produto_id)
 
 
 @app.route("/valores", methods=["GET", "POST"])

@@ -172,3 +172,6 @@ body {
 .opening-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.opening-item{border:1px solid #ececec;border-radius:14px;padding:14px;background:#fff}.opening-item label{font-weight:700;display:block;margin-bottom:10px;min-height:24px}.quantity-control{display:grid;grid-template-columns:42px 1fr 42px;gap:8px}.quantity-control input{text-align:center;font-weight:700}.qty-btn{border:0;border-radius:10px;background:#f2f3f5;font-size:22px;font-weight:700}.qty-btn:hover{background:#e4e6e9}.opening-summary{display:flex;justify-content:space-between;align-items:center;background:#fff3e8;border:1px solid #ffd8b5;border-radius:14px;padding:16px 18px}.opening-summary strong{font-size:1.5rem;color:#d85b00}
 @media(max-width:991px){.opening-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:575px){.opening-grid{grid-template-columns:1fr}.opening-item{padding:12px}}
+
+/* Área operacional sem dados financeiros */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}.metric{background:#fff;border:1px solid #e9ecef;border-radius:14px;padding:16px}.metric span{display:block;color:#6c757d;font-size:.86rem;margin-bottom:5px}.metric strong{font-size:1.25rem}
