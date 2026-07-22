@@ -71,28 +71,11 @@
         </div>
       </section>
 
-      <section class="col-lg-6">
-        <div class="app-card h-100">
-          <div class="section-heading"><div><span class="section-icon">📉</span><div><h4>Despesas diárias</h4><p>Edite cada pessoa e o valor da diária separadamente.</p></div></div></div>
-          <div id="lista-equipe"></div>
-          <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="adicionar-pessoa">+ Adicionar pessoa</button>
-          <div class="inline-total mb-3"><span>Total das diárias</span><strong>R$ <span id="total-diarias">0,00</span></strong></div>
-          <div class="row g-3">{% for nome,rotulo,indice in [('descontos','Descontos',12),('fornecedores','Fornecedores',13),('seguranca','Segurança',14),('outras_despesas','Outras despesas',15)] %}<div class="col-6"><label>{{ rotulo }}</label><div class="money-input"><span>R$</span><input class="form-control valor-despesa" type="number" step="0.01" min="0" id="{{ nome }}" name="{{ nome }}" value="{{ controle[indice] or 0 }}"></div></div>{% endfor %}</div>
-        </div>
-      </section>
+      <section class="col-lg-6"><div class="app-card h-100"><div class="section-heading"><div><span class="section-icon">👥</span><div><h4>Equipe e diárias</h4><p>Edite cada pessoa e a diária paga após o fechamento.</p></div></div></div><div id="lista-equipe"></div><button type="button" class="btn btn-outline-primary btn-sm mb-3" id="adicionar-pessoa">+ Adicionar pessoa</button><div class="inline-total"><span>Total das diárias</span><strong>R$ <span id="total-diarias">0,00</span></strong></div></div></section>
 
-      <section class="col-lg-6">
-        <div class="summary-card h-100">
-          <span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span>
-          <h4 class="mb-4">Conferência da edição</h4>
-          <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div>
-          <div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div>
-          <div class="summary-line"><span>Dinheiro</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div>
-          <div class="summary-line"><span>Total bruto</span><strong>R$ <span id="total-bruto">0,00</span></strong></div>
-          <div class="summary-line expense"><span>Despesas e descontos</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div>
-          <div class="summary-final"><span>Total líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
-        </div>
-      </section>
+      <section class="col-lg-6"><div class="app-card h-100"><div class="section-heading"><div><span class="section-icon">🧾</span><div><h4>Despesas pagas durante a feira</h4><p>Edite cada pagamento já retirado do caixa durante o funcionamento.</p></div></div></div><div id="lista-despesas"></div><button type="button" class="btn btn-outline-primary btn-sm mb-3" id="adicionar-despesa">+ Adicionar despesa</button><div class="inline-total mb-3"><span>Total pago durante a feira</span><strong>R$ <span id="total-despesas-feira">0,00</span></strong></div><label>Descontos concedidos (apenas informativo)</label><div class="money-input"><span>R$</span><input class="form-control" type="number" step="0.01" min="0" id="descontos" name="descontos" value="{{ controle[12] or 0 }}"></div></div></section>
+
+      <section class="col-lg-6"><div class="summary-card h-100"><span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span><h4 class="mb-4">Conferência da edição</h4><div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total apurado</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Faturamento estimado</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line expense"><span>Diárias a pagar</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-final"><span>Valor após as diárias</span><strong>R$ <span id="total-liquido">0,00</span></strong></div></div></section>
     </div>
 
     <button class="btn btn-success btn-lg w-100 mt-4 py-3" type="submit">💾 Recalcular e salvar relatório</button>
@@ -111,16 +94,20 @@ function totalizar(){
   const pix=valor('pix');
   const dinheiro=valor('troco_total')+valor('dinheiro_grande');
   const diarias=[...document.querySelectorAll('.valor-diaria')].reduce((s,e)=>s+Number(e.value||0),0);
-  const despesas=['descontos','fornecedores','seguranca','outras_despesas'].reduce((s,id)=>s+valor(id),0)+diarias;
+  const despesasFeira=[...document.querySelectorAll('.valor-despesa-feira')].reduce((s,e)=>s+Number(e.value||0),0);
   document.getElementById('total-diarias').textContent=moeda(diarias);
+  document.getElementById('total-despesas-feira').textContent=moeda(despesasFeira);
   const bruto=maquinas+pix+dinheiro;
-  const liquido=bruto-despesas;
+  const faturamento=bruto+despesasFeira;
+  const liquido=bruto-diarias;
   document.getElementById('total-dinheiro').textContent=moeda(dinheiro);
   document.getElementById('resumo-maquinas').textContent=moeda(maquinas);
   document.getElementById('resumo-pix').textContent=moeda(pix);
   document.getElementById('resumo-dinheiro').textContent=moeda(dinheiro);
   document.getElementById('total-bruto').textContent=moeda(bruto);
-  document.getElementById('total-despesas').textContent=moeda(despesas);
+  document.getElementById('resumo-despesas-feira').textContent=moeda(despesasFeira);
+  document.getElementById('faturamento-estimado').textContent=moeda(faturamento);
+  document.getElementById('total-despesas').textContent=moeda(diarias);
   document.getElementById('total-liquido').textContent=moeda(liquido);
 }
 function adicionarPessoa(nome='', diaria=''){
@@ -130,9 +117,18 @@ function adicionarPessoa(nome='', diaria=''){
   linha.querySelector('.valor-diaria').addEventListener('input',totalizar);
   document.getElementById('lista-equipe').appendChild(linha);
 }
+function adicionarDespesa(nome='', valorDespesa=''){
+  const linha=document.createElement('div'); linha.className='row g-2 align-items-end mb-2 despesa-linha';
+  linha.innerHTML=`<div class="col-7"><label>Descrição</label><input class="form-control" name="despesa_nome[]" value="${nome}" required></div><div class="col-4"><label>Valor pago</label><div class="money-input"><span>R$</span><input class="form-control valor-despesa-feira" type="number" step="0.01" min="0" name="despesa_valor[]" value="${valorDespesa}"></div></div><div class="col-1"><button type="button" class="btn btn-outline-danger w-100 remover-despesa">×</button></div>`;
+  linha.querySelector('.remover-despesa').onclick=()=>{linha.remove();totalizar()};
+  linha.querySelector('.valor-despesa-feira').addEventListener('input',totalizar);
+  document.getElementById('lista-despesas').appendChild(linha);
+}
 document.getElementById('adicionar-pessoa').onclick=()=>adicionarPessoa();
+document.getElementById('adicionar-despesa').onclick=()=>adicionarDespesa();
 {% for pessoa in equipe %}adicionarPessoa({{ pessoa.nome|tojson }}, {{ pessoa.diaria|tojson }});{% else %}adicionarPessoa();{% endfor %}
-document.querySelectorAll('.valor-caixa,.valor-despesa').forEach(el=>el.addEventListener('input',totalizar));
+{% for despesa in despesas %}adicionarDespesa({{ despesa.nome|tojson }}, {{ despesa.valor|tojson }});{% else %}adicionarDespesa();{% endfor %}
+document.querySelectorAll('.valor-caixa').forEach(el=>el.addEventListener('input',totalizar));
 totalizar();
 </script>
 </body>

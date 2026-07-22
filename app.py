@@ -39,6 +39,42 @@ def ler_equipe_formulario():
     return equipe
 
 
+
+def ler_despesas_formulario():
+    nomes = request.form.getlist("despesa_nome[]")
+    valores = request.form.getlist("despesa_valor[]")
+    despesas = []
+    for nome, valor in zip(nomes, valores):
+        nome = (nome or "").strip()
+        if not nome:
+            continue
+        try:
+            quantia = float(str(valor or "0").replace(",", "."))
+        except (TypeError, ValueError):
+            quantia = 0.0
+        despesas.append({"nome": nome, "valor": max(0, quantia)})
+    return despesas
+
+
+def decodificar_despesas(texto, fornecedores=0, seguranca=0, outras=0):
+    try:
+        dados = json.loads(texto or "[]")
+        if isinstance(dados, list):
+            despesas = [
+                {"nome": str(item.get("nome", "")).strip(), "valor": float(item.get("valor", 0) or 0)}
+                for item in dados if isinstance(item, dict) and str(item.get("nome", "")).strip()
+            ]
+            if despesas:
+                return despesas
+    except (TypeError, ValueError, json.JSONDecodeError):
+        pass
+    antigas = []
+    for nome, valor in (("Fornecedores", fornecedores), ("Segurança", seguranca), ("Outras despesas", outras)):
+        if float(valor or 0) > 0:
+            antigas.append({"nome": nome, "valor": float(valor or 0)})
+    return antigas
+
+
 def decodificar_equipe(texto, nomes_antigos=""):
     try:
         dados = json.loads(texto or "[]")
@@ -180,27 +216,30 @@ def fechamento():
         dinheiro_grande = numero("dinheiro_grande")
         dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
-        fornecedores = numero("fornecedores")
-        seguranca = numero("seguranca")
-        outras = numero("outras_despesas")
+        despesas = ler_despesas_formulario()
+        despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
+        despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
         equipe = ler_equipe_formulario()
         equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
         equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
         diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
-        total_bruto = m1 + m2 + m3 + m4 + dinheiro + pix
-        total_liquido = total_bruto - descontos - fornecedores - seguranca - outras - diarias_total
+        total_apurado = m1 + m2 + m3 + m4 + dinheiro + pix
+        # Despesas pagas durante a feira já saíram do caixa e não podem ser descontadas novamente.
+        # Somente as diárias são pagas depois do fechamento.
+        total_liquido = total_apurado - diarias_total
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
                 maquina4=%s,dinheiro=%s,pix=%s,troco_total=%s,dinheiro_grande=%s,
                 dinheiro_50=0,dinheiro_100=0,dinheiro_200=0,
                 sobra_pasteis=%s,consumo_pasteis=%s,
-                descontos=%s,fornecedores=%s,seguranca=%s,outras_despesas=%s,
+                descontos=%s,fornecedores=0,seguranca=0,outras_despesas=0,
+                despesas_detalhes=%s,despesas_durante_total=%s,
                 equipe_dia=%s,equipe_detalhes=%s,diarias_total=%s,
                 status='FECHADO' WHERE id=%s
         """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
               total_sobra_pasteis,total_consumo_pasteis,
-              descontos,fornecedores,seguranca,outras,equipe_dia,equipe_detalhes,
+              descontos,despesas_detalhes,despesas_durante_total,equipe_dia,equipe_detalhes,
               diarias_total,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
@@ -260,7 +299,7 @@ def relatorios():
         maquina4,dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
         seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,
-        equipe_dia,equipe_detalhes,diarias_total FROM controle
+        equipe_dia,equipe_detalhes,diarias_total,despesas_detalhes,despesas_durante_total FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -279,7 +318,13 @@ def relatorios():
         """, (controle[0],))
         itens = ordenar_produtos(cursor.fetchall(), 0)
         equipe = decodificar_equipe(controle[30] if len(controle) > 30 else "", controle[29] if len(controle) > 29 else "")
-        relatorios.append((controle,itens,equipe))
+        despesas = decodificar_despesas(
+            controle[32] if len(controle) > 32 else "",
+            controle[22] if len(controle) > 22 else 0,
+            controle[23] if len(controle) > 23 else 0,
+            controle[24] if len(controle) > 24 else 0,
+        )
+        relatorios.append((controle,itens,equipe,despesas))
     cursor.close(); conn.close()
     return render_template("relatorios.html", relatorios=relatorios, data_filtro=data_filtro)
 
@@ -355,17 +400,15 @@ def editar_relatorio(id):
         dinheiro_grande = numero("dinheiro_grande")
         dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
-        fornecedores = numero("fornecedores")
-        seguranca = numero("seguranca")
-        outras = numero("outras_despesas")
+        despesas = ler_despesas_formulario()
+        despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
+        despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
         equipe = ler_equipe_formulario()
         equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
         equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
         diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
-        caixa_final = (
-            m1 + m2 + m3 + m4 + pix + dinheiro
-            - descontos - fornecedores - seguranca - outras - diarias_total
-        )
+        total_apurado = m1 + m2 + m3 + m4 + pix + dinheiro
+        caixa_final = total_apurado - diarias_total
 
         cursor.execute("""
             UPDATE controle SET
@@ -373,13 +416,14 @@ def editar_relatorio(id):
                 maquina4=%s, dinheiro=%s, pix=%s, troco_total=%s,
                 dinheiro_grande=%s, dinheiro_50=0, dinheiro_100=0, dinheiro_200=0,
                 sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
-                fornecedores=%s, seguranca=%s, outras_despesas=%s, equipe_dia=%s,
+                fornecedores=0, seguranca=0, outras_despesas=0,
+                despesas_detalhes=%s, despesas_durante_total=%s, equipe_dia=%s,
                 equipe_detalhes=%s, diarias_total=%s
             WHERE id=%s
         """, (
             caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
             dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
-            descontos, fornecedores, seguranca, outras, equipe_dia,
+            descontos, despesas_detalhes, despesas_durante_total, equipe_dia,
             equipe_detalhes, diarias_total, id,
         ))
         conn.commit()
@@ -395,14 +439,21 @@ def editar_relatorio(id):
                COALESCE(NULLIF(dinheiro_grande, 0),
                         COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0)),
                COALESCE(equipe_dia, ''), COALESCE(equipe_detalhes, '[]'),
-               COALESCE(diarias_total, 0)
+               COALESCE(diarias_total, 0), COALESCE(despesas_detalhes, '[]'),
+               COALESCE(despesas_durante_total, 0)
         FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone()
     equipe = decodificar_equipe(controle[19] if len(controle) > 19 else "", controle[18] if len(controle) > 18 else "")
+    despesas = decodificar_despesas(
+        controle[21] if len(controle) > 21 else "",
+        controle[13] if len(controle) > 13 else 0,
+        controle[14] if len(controle) > 14 else 0,
+        controle[15] if len(controle) > 15 else 0,
+    )
     cursor.close()
     conn.close()
-    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas, equipe=equipe)
+    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas, equipe=equipe, despesas=despesas)
 
 
 @app.route("/excluir_relatorio/<int:id>")
