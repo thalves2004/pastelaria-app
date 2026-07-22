@@ -174,6 +174,17 @@ def criar_banco():
         # Guarda o valor praticado no dia para que relatórios antigos não mudem quando o preço atual for alterado.
         cursor.execute("ALTER TABLE producao ADD COLUMN IF NOT EXISTS valor_unitario NUMERIC(12,2) DEFAULT 0")
 
+        # Quantidades padrão para os dias em que a feira funciona.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS quantidades_padrao (
+                id SERIAL PRIMARY KEY,
+                dia_semana VARCHAR(20) NOT NULL,
+                produto_id INTEGER NOT NULL REFERENCES produtos(id) ON DELETE CASCADE,
+                quantidade INTEGER NOT NULL DEFAULT 0,
+                UNIQUE (dia_semana, produto_id)
+            )
+        """)
+
         colunas_controle = {
             # Campos antigos mantidos para não perder relatórios anteriores.
             "troco_50": "NUMERIC(12,2) DEFAULT 0",

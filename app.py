@@ -141,6 +141,41 @@ def dashboard():
                            caixa_aberto=caixa_aberto)
 
 
+@app.route("/quantidades-padrao", methods=["GET", "POST"])
+def quantidades_padrao():
+    if not autenticado() or not admin():
+        return redirect("/dashboard")
+
+    dias_validos = ["terca", "sabado", "domingo"]
+    dia = (request.values.get("dia") or "terca").lower()
+    if dia not in dias_validos:
+        dia = "terca"
+
+    conn = conectar(); cursor = conn.cursor()
+    cursor.execute("SELECT id,nome,categoria FROM produtos ORDER BY categoria,nome")
+    produtos = ordenar_produtos(cursor.fetchall(), 1)
+
+    if request.method == "POST":
+        for produto in produtos:
+            quantidade = inteiro(f"produto_{produto[0]}")
+            cursor.execute("""
+                INSERT INTO quantidades_padrao (dia_semana, produto_id, quantidade)
+                VALUES (%s,%s,%s)
+                ON CONFLICT (dia_semana, produto_id)
+                DO UPDATE SET quantidade=EXCLUDED.quantidade
+            """, (dia, produto[0], quantidade))
+        conn.commit()
+        cursor.close(); conn.close()
+        return redirect(f"/quantidades-padrao?dia={dia}&salvo=1")
+
+    cursor.execute("SELECT produto_id,quantidade FROM quantidades_padrao WHERE dia_semana=%s", (dia,))
+    quantidades = {produto_id: quantidade for produto_id, quantidade in cursor.fetchall()}
+    cursor.close(); conn.close()
+    return render_template("quantidades_padrao.html", dia=dia, quantidades=quantidades,
+                           pasteis=[p for p in produtos if p[2].lower() == "pastel"],
+                           bebidas=[p for p in produtos if p[2].lower() == "bebida"])
+
+
 @app.route("/abertura", methods=["GET", "POST"])
 def abertura():
     if not autenticado(): return redirect("/")
@@ -161,8 +196,13 @@ def abertura():
                            (controle_id, produto[0], inteiro(f"produto_{produto[0]}"), produto[3] or 0))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
+    cursor.execute("SELECT dia_semana,produto_id,quantidade FROM quantidades_padrao")
+    padroes = {"terca": {}, "sabado": {}, "domingo": {}}
+    for dia_semana, produto_id, quantidade in cursor.fetchall():
+        if dia_semana in padroes:
+            padroes[dia_semana][str(produto_id)] = quantidade or 0
     cursor.close(); conn.close()
-    return render_template("abertura.html", produtos=produtos,
+    return render_template("abertura.html", produtos=produtos, padroes=padroes,
                            pasteis=[p for p in produtos if p[2].lower() == "pastel"],
                            bebidas=[p for p in produtos if p[2].lower() == "bebida"])
 

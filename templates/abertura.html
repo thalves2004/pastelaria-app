@@ -39,6 +39,27 @@
 
     <section class="app-card mb-4">
       <div class="section-heading">
+        <div><span class="section-icon">⚡</span><div><h4>Preenchimento automático</h4><p>Selecione o dia da feira para carregar as quantidades padrão. Depois você ainda pode editar qualquer item.</p></div></div>
+      </div>
+      <div class="row g-3 align-items-end">
+        <div class="col-md-8">
+          <label for="modelo-dia">Modelo de quantidades</label>
+          <select id="modelo-dia" class="form-select form-select-lg">
+            <option value="">Selecione...</option>
+            <option value="terca">Terça-feira</option>
+            <option value="sabado">Sábado</option>
+            <option value="domingo">Domingo</option>
+          </select>
+        </div>
+        <div class="col-md-4">
+          <button type="button" id="aplicar-padrao" class="btn btn-primary btn-lg w-100">Preencher automaticamente</button>
+        </div>
+      </div>
+      <div id="aviso-padrao" class="form-text mt-2"></div>
+    </section>
+
+    <section class="app-card mb-4">
+      <div class="section-heading">
         <div><span class="section-icon">🥟</span><div><h4>Pastéis e salgados</h4><p>Quantidade que saiu para venda no início do dia.</p></div></div>
       </div>
       <div class="opening-grid">
@@ -81,9 +102,42 @@
   </form>
 </div>
 <script>
+const padroes = {{ padroes | tojson }};
 const hoje = new Date();
 const local = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().split('T')[0];
-document.getElementById('data').value = local;
+const campoData = document.getElementById('data');
+const modeloDia = document.getElementById('modelo-dia');
+campoData.value = local;
+
+function modeloPelaData(valorData) {
+  if (!valorData) return '';
+  const data = new Date(valorData + 'T12:00:00');
+  const diaSemana = data.getDay();
+  return diaSemana === 2 ? 'terca' : diaSemana === 6 ? 'sabado' : diaSemana === 0 ? 'domingo' : '';
+}
+
+function selecionarModeloDaData() {
+  modeloDia.value = modeloPelaData(campoData.value);
+}
+selecionarModeloDaData();
+campoData.addEventListener('change', selecionarModeloDaData);
+
+document.getElementById('aplicar-padrao').addEventListener('click', () => {
+  const dia = modeloDia.value;
+  const aviso = document.getElementById('aviso-padrao');
+  if (!dia) {
+    aviso.textContent = 'Selecione terça-feira, sábado ou domingo.';
+    return;
+  }
+  const quantidades = padroes[dia] || {};
+  document.querySelectorAll('.quantidade-produto').forEach(input => {
+    const produtoId = input.id.replace('produto_', '');
+    input.value = Number(quantidades[produtoId] || 0);
+  });
+  atualizarTotal();
+  const nomes = {terca: 'terça-feira', sabado: 'sábado', domingo: 'domingo'};
+  aviso.textContent = `Quantidades de ${nomes[dia]} carregadas. Você pode editar os valores antes de abrir o caixa.`;
+});
 
 function atualizarTotal() {
   const total = [...document.querySelectorAll('.quantidade-produto')]
