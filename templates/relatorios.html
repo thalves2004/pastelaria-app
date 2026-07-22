@@ -19,14 +19,18 @@
       <div class="d-flex gap-2"><span class="badge {{ 'text-bg-danger' if c[11] == 'FECHADO' else 'text-bg-success' }}">{{ c[11] }}</span><a href="/editar_relatorio/{{ c[0] }}" class="btn btn-warning btn-sm">✏️ Editar</a><a href="/excluir_relatorio/{{ c[0] }}" class="btn btn-danger btn-sm" onclick="return confirm('Excluir este relatório?')">🗑 Excluir</a></div>
     </div>
 
+    {% set total_encontrado = (c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)+(c[9] or 0)+(c[10] or 0) %}
+    {% set faturamento_bruto = total_encontrado + (c[33] or 0) %}
     <div class="metric-grid mt-4">
       <div class="metric"><span>Caixa inicial</span><strong>R$ {{ "%.2f"|format(c[3] or 0) }}</strong></div>
-      <div class="metric"><span>Total líquido</span><strong>R$ {{ "%.2f"|format(c[4] or 0) }}</strong></div>
+      <div class="metric"><span>Total encontrado no fechamento</span><strong>R$ {{ "%.2f"|format(total_encontrado) }}</strong></div>
+      <div class="metric"><span>Despesas pagas durante a feira</span><strong>R$ {{ "%.2f"|format(c[33] or 0) }}</strong></div>
+      <div class="metric"><span>Faturamento bruto</span><strong>R$ {{ "%.2f"|format(faturamento_bruto) }}</strong></div>
+      <div class="metric"><span>Diárias da equipe</span><strong>R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div>
+      <div class="metric"><span>Resultado líquido</span><strong>R$ {{ "%.2f"|format(c[4] or 0) }}</strong></div>
       <div class="metric"><span>Máquinas</span><strong>R$ {{ "%.2f"|format((c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)) }}</strong></div>
       <div class="metric"><span>PIX</span><strong>R$ {{ "%.2f"|format(c[10] or 0) }}</strong></div>
       <div class="metric"><span>Dinheiro</span><strong>R$ {{ "%.2f"|format(c[9] or 0) }}</strong></div>
-      <div class="metric"><span>Diárias a pagar</span><strong>R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div>
-      <div class="metric"><span>Despesas já pagas</span><strong>R$ {{ "%.2f"|format(c[33] or 0) }}</strong></div>
     </div>
 
     <details class="report-details mt-4">
