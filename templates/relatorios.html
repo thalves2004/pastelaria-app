@@ -20,7 +20,7 @@
     </div>
 
     {% set total_encontrado = (c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)+(c[9] or 0)+(c[10] or 0) %}
-    {% set faturamento_bruto = total_encontrado + (c[33] or 0) %}
+    {% set faturamento_bruto = (total_encontrado|float) + ((c[33] or 0)|float) %}
     <div class="metric-grid mt-4">
       <div class="metric"><span>Caixa inicial</span><strong>R$ {{ "%.2f"|format(c[3] or 0) }}</strong></div>
       <div class="metric"><span>Total encontrado no fechamento</span><strong>R$ {{ "%.2f"|format(total_encontrado) }}</strong></div>
