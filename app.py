@@ -256,6 +256,7 @@ def fechamento():
         dinheiro_grande = numero("dinheiro_grande")
         dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
+        dinheiro_adicionado = numero("dinheiro_adicionado")
         despesas = ler_despesas_formulario()
         despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
         despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
@@ -276,11 +277,11 @@ def fechamento():
                 descontos=%s,fornecedores=0,seguranca=0,outras_despesas=0,
                 despesas_detalhes=%s,despesas_durante_total=%s,
                 equipe_dia=%s,equipe_detalhes=%s,diarias_total=%s,
-                status='FECHADO' WHERE id=%s
+                dinheiro_adicionado=%s, status='FECHADO' WHERE id=%s
         """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
               total_sobra_pasteis,total_consumo_pasteis,
               descontos,despesas_detalhes,despesas_durante_total,equipe_dia,equipe_detalhes,
-              diarias_total,controle[0]))
+              diarias_total,dinheiro_adicionado,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
 
@@ -369,7 +370,8 @@ def relatorios():
         maquina4,dinheiro,pix,status,troco_50,troco_20,troco_10,troco_5,troco_2,
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
         seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,
-        equipe_dia,equipe_detalhes,diarias_total,despesas_detalhes,despesas_durante_total FROM controle
+        equipe_dia,equipe_detalhes,diarias_total,despesas_detalhes,despesas_durante_total,
+        dinheiro_adicionado FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -471,6 +473,7 @@ def editar_relatorio(id):
         dinheiro_grande = numero("dinheiro_grande")
         dinheiro = troco_total + dinheiro_grande
         descontos = numero("descontos")
+        dinheiro_adicionado = numero("dinheiro_adicionado")
         despesas = ler_despesas_formulario()
         despesas_durante_total = sum(Decimal(str(item["valor"])) for item in despesas)
         despesas_detalhes = json.dumps(despesas, ensure_ascii=False)
@@ -489,13 +492,13 @@ def editar_relatorio(id):
                 sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
                 fornecedores=0, seguranca=0, outras_despesas=0,
                 despesas_detalhes=%s, despesas_durante_total=%s, equipe_dia=%s,
-                equipe_detalhes=%s, diarias_total=%s
+                equipe_detalhes=%s, diarias_total=%s, dinheiro_adicionado=%s
             WHERE id=%s
         """, (
             caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
             dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
             descontos, despesas_detalhes, despesas_durante_total, equipe_dia,
-            equipe_detalhes, diarias_total, id,
+            equipe_detalhes, diarias_total, dinheiro_adicionado, id,
         ))
         conn.commit()
         cursor.close()
@@ -511,7 +514,7 @@ def editar_relatorio(id):
                         COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0)),
                COALESCE(equipe_dia, ''), COALESCE(equipe_detalhes, '[]'),
                COALESCE(diarias_total, 0), COALESCE(despesas_detalhes, '[]'),
-               COALESCE(despesas_durante_total, 0)
+               COALESCE(despesas_durante_total, 0), COALESCE(dinheiro_adicionado, 0)
         FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone()

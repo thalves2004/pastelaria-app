@@ -36,11 +36,33 @@
     <details class="report-details mt-4">
       <summary>Ver detalhes financeiros</summary>
       <div class="row g-3 mt-1">
-        <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p class="mb-0">Notas de R$ 50, R$ 100 e R$ 200: <strong>R$ {{ "%.2f"|format((c[18] or 0) if (c[18] or 0) > 0 else ((c[26] or 0)+(c[27] or 0)+(c[28] or 0))) }}</strong></p></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p>Notas de R$ 50, R$ 100 e R$ 200: <strong>R$ {{ "%.2f"|format((c[18] or 0) if (c[18] or 0) > 0 else ((c[26] or 0)+(c[27] or 0)+(c[28] or 0))) }}</strong></p><p class="mb-0">Dinheiro adicionado ao caixa: <strong>R$ {{ "%.2f"|format(c[34] or 0) }}</strong></p></div></div>
         <div class="col-md-6"><div class="detail-box"><h6>Equipe e diárias</h6>{% if equipe %}<ul class="mb-2">{% for pessoa in equipe %}<li>{{ pessoa.nome }} — R$ {{ "%.2f"|format(pessoa.diaria or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma pessoa registrada.</p>{% endif %}<strong>Total das diárias: R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div></div>
         <div class="col-md-6"><div class="detail-box"><h6>Despesas pagas durante a feira</h6>{% if despesas %}<ul class="mb-2">{% for despesa in despesas %}<li>{{ despesa.nome }} — R$ {{ "%.2f"|format(despesa.valor or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma despesa registrada.</p>{% endif %}<strong>Total já pago: R$ {{ "%.2f"|format(c[33] or 0) }}</strong><p class="mt-2 mb-0">Descontos informados: R$ {{ "%.2f"|format(c[21] or 0) }}</p></div></div>
       </div>
     </details>
+
+    {% set vendas = namespace(total=0.0) %}
+    {% for p in itens %}
+      {% if p[1]|lower == 'pastel' %}
+        {% set qtd_vendida = [0, (p[2] or 0)-(p[3] or 0)-(p[5] or 0)-(p[6] or 0)-(p[7] or 0)-(p[4] or 0)]|max %}
+      {% else %}
+        {% set qtd_vendida = [0, (p[2] or 0)-(p[3] or 0)-(p[6] or 0)-(p[4] or 0)]|max %}
+      {% endif %}
+      {% set vendas.total = vendas.total + ((qtd_vendida|float) * ((p[8] or 0)|float)) %}
+    {% endfor %}
+    {% set financeiro_ajustado = (faturamento_bruto|float) - ((c[34] or 0)|float) %}
+    {% set diferenca_vendas = financeiro_ajustado - vendas.total %}
+    <section class="app-card mt-4 mb-4">
+      <div class="section-heading"><div><span class="section-icon">⚖️</span><div><h4>Conferência entre produtos e caixa</h4><p>Compara o valor calculado pelos itens vendidos com o movimento financeiro, retirando o dinheiro extra colocado no caixa.</p></div></div></div>
+      <div class="metric-grid">
+        <div class="metric"><span>Vendas estimadas pelos produtos</span><strong>R$ {{ "%.2f"|format(vendas.total) }}</strong></div>
+        <div class="metric"><span>Faturamento financeiro ajustado</span><strong>R$ {{ "%.2f"|format(financeiro_ajustado) }}</strong></div>
+        <div class="metric"><span>Dinheiro adicionado ao caixa</span><strong>R$ {{ "%.2f"|format(c[34] or 0) }}</strong></div>
+        <div class="metric"><span>Diferença</span><strong class="{{ 'text-success' if diferenca_vendas == 0 else 'text-danger' }}">R$ {{ "%.2f"|format(diferenca_vendas) }}</strong></div>
+      </div>
+      <small class="text-muted d-block mt-3">Diferença positiva: o financeiro ficou acima das vendas calculadas. Diferença negativa: o financeiro ficou abaixo.</small>
+    </section>
 
     <h5 class="mt-4">🥟 Pastéis, salgados e massa</h5>
     <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Valor unit.</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th><th>Total estimado</th></tr></thead><tbody>
