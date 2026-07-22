@@ -145,7 +145,7 @@ def dashboard():
 def abertura():
     if not autenticado(): return redirect("/")
     conn = conectar(); cursor = conn.cursor()
-    cursor.execute("SELECT id,nome,categoria FROM produtos ORDER BY categoria,nome")
+    cursor.execute("SELECT id,nome,categoria,COALESCE(valor,0) FROM produtos ORDER BY categoria,nome")
     produtos = ordenar_produtos(cursor.fetchall(), 1)
     if request.method == "POST":
         cursor.execute("SELECT COUNT(*) FROM controle WHERE UPPER(status)='ABERTO'")
@@ -157,8 +157,8 @@ def abertura():
         """, (request.form.get("data"), session["usuario"], numero("caixa")))
         controle_id = cursor.fetchone()[0]
         for produto in produtos:
-            cursor.execute("INSERT INTO producao (controle_id,produto_id,quantidade) VALUES (%s,%s,%s)",
-                           (controle_id, produto[0], inteiro(f"produto_{produto[0]}")))
+            cursor.execute("INSERT INTO producao (controle_id,produto_id,quantidade,valor_unitario) VALUES (%s,%s,%s,%s)",
+                           (controle_id, produto[0], inteiro(f"produto_{produto[0]}"), produto[3] or 0))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
     cursor.close(); conn.close()
@@ -177,7 +177,7 @@ def fechamento():
         cursor.close(); conn.close(); return redirect("/abertura")
 
     cursor.execute("""
-        SELECT pr.id,p.id,p.nome,p.categoria,pr.quantidade
+        SELECT pr.id,p.id,p.nome,p.categoria,pr.quantidade,COALESCE(NULLIF(pr.valor_unitario,0),p.valor,0)
         FROM producao pr JOIN produtos p ON p.id=pr.produto_id
         WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
     """, (controle[0],))
@@ -188,7 +188,7 @@ def fechamento():
     if request.method == "POST":
         total_sobra_pasteis = 0
         total_consumo_pasteis = 0
-        for producao_id, produto_id, nome, categoria, produzido in produtos:
+        for producao_id, produto_id, nome, categoria, produzido, valor_unitario in produtos:
             sobra = inteiro(f"final_{producao_id}")
             perda = inteiro(f"perda_{producao_id}")
             if categoria.lower() == "bebida":
@@ -247,6 +247,36 @@ def fechamento():
     cursor.close(); conn.close()
     return render_template("fechamento.html", produtos=produtos, pasteis=pasteis, bebidas=bebidas,
                            data=controle[1], caixa_inicial=controle[2])
+
+
+@app.route("/valores", methods=["GET", "POST"])
+def valores_produtos():
+    if not autenticado():
+        return redirect("/")
+    if not admin():
+        return redirect("/dashboard")
+    conn = conectar(); cursor = conn.cursor()
+    if request.method == "POST":
+        cursor.execute("SELECT id FROM produtos")
+        for (produto_id,) in cursor.fetchall():
+            novo_valor = numero(f"valor_{produto_id}")
+            cursor.execute("UPDATE produtos SET valor=%s WHERE id=%s", (novo_valor, produto_id))
+            # Se o caixa já estiver aberto, aplica o novo valor também ao fechamento atual.
+            cursor.execute("""
+                UPDATE producao SET valor_unitario=%s
+                WHERE produto_id=%s AND controle_id IN
+                      (SELECT id FROM controle WHERE UPPER(status)='ABERTO')
+            """, (novo_valor, produto_id))
+        conn.commit()
+        cursor.close(); conn.close()
+        return redirect("/valores?salvo=1")
+    cursor.execute("SELECT id,nome,categoria,COALESCE(valor,0) FROM produtos ORDER BY categoria,nome")
+    produtos = ordenar_produtos(cursor.fetchall(), 1)
+    cursor.close(); conn.close()
+    return render_template("valores.html",
+                           pasteis=[p for p in produtos if p[2].lower() == "pastel"],
+                           bebidas=[p for p in produtos if p[2].lower() == "bebida"],
+                           salvo=request.args.get("salvo"))
 
 
 @app.route("/produtos")
@@ -311,7 +341,8 @@ def relatorios():
         cursor.execute("""
             SELECT p.nome,p.categoria,pr.quantidade,
                    COALESCE(e.quantidade_final,0),COALESCE(e.perda,0),
-                   COALESCE(e.brinde,0),COALESCE(e.consumo,0),COALESCE(e.sobra_frita,0)
+                   COALESCE(e.brinde,0),COALESCE(e.consumo,0),COALESCE(e.sobra_frita,0),
+                   COALESCE(NULLIF(pr.valor_unitario,0),p.valor,0)
             FROM producao pr JOIN produtos p ON p.id=pr.produto_id
             LEFT JOIN estoque e ON e.controle_id=pr.controle_id AND e.produto_id=pr.produto_id
             WHERE pr.controle_id=%s ORDER BY p.categoria,p.nome
@@ -347,7 +378,7 @@ def editar_relatorio(id):
         SELECT pr.id, p.id, p.nome, p.categoria, pr.quantidade,
                COALESCE(e.quantidade_final, 0), COALESCE(e.perda, 0),
                COALESCE(e.brinde, 0), COALESCE(e.consumo, 0),
-               COALESCE(e.sobra_frita, 0)
+               COALESCE(e.sobra_frita, 0), COALESCE(NULLIF(pr.valor_unitario,0),p.valor,0)
         FROM producao pr
         JOIN produtos p ON p.id = pr.produto_id
         LEFT JOIN estoque e

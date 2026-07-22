@@ -169,6 +169,11 @@ def criar_banco():
             )
         """)
 
+        # Valor atual de venda de cada produto. Mantido separado do cadastro fixo.
+        cursor.execute("ALTER TABLE produtos ADD COLUMN IF NOT EXISTS valor NUMERIC(12,2) DEFAULT 0")
+        # Guarda o valor praticado no dia para que relatórios antigos não mudem quando o preço atual for alterado.
+        cursor.execute("ALTER TABLE producao ADD COLUMN IF NOT EXISTS valor_unitario NUMERIC(12,2) DEFAULT 0")
+
         colunas_controle = {
             # Campos antigos mantidos para não perder relatórios anteriores.
             "troco_50": "NUMERIC(12,2) DEFAULT 0",

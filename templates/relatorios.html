@@ -43,15 +43,15 @@
     </details>
 
     <h5 class="mt-4">🥟 Pastéis, salgados e massa</h5>
-    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th></tr></thead><tbody>
-      {% for p in itens if p[1]|lower == 'pastel' %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[5] }}</td><td>{{ p[6] }}</td><td>{{ p[7] }}</td><td>{{ p[4] }}</td></tr>
-      {% else %}<tr><td colspan="7" class="text-center text-muted">Nenhum item registrado.</td></tr>{% endfor %}
+    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Valor unit.</th><th>Saída</th><th>Retorno</th><th>Brinde</th><th>Consumo</th><th>Sobra frita</th><th>Perda</th><th>Vendido</th><th>Total estimado</th></tr></thead><tbody>
+      {% for p in itens if p[1]|lower == 'pastel' %}{% set vendido = [0, (p[2] or 0)-(p[3] or 0)-(p[5] or 0)-(p[6] or 0)-(p[7] or 0)-(p[4] or 0)]|max %}<tr><td><strong>{{ p[0] }}</strong></td><td>R$ {{ "%.2f"|format(p[8] or 0) }}</td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[5] }}</td><td>{{ p[6] }}</td><td>{{ p[7] }}</td><td>{{ p[4] }}</td><td><strong class="text-success">{{ vendido }}</strong></td><td>R$ {{ "%.2f"|format(vendido * (p[8] or 0)) }}</td></tr>
+      {% else %}<tr><td colspan="10" class="text-center text-muted">Nenhum item registrado.</td></tr>{% endfor %}
     </tbody></table></div>
 
     <h5 class="mt-4">🥤 Bebidas</h5>
-    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th></tr></thead><tbody>
-      {% for p in itens if p[1]|lower == 'bebida' %}<tr><td><strong>{{ p[0] }}</strong></td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[6] }}</td><td>{{ p[4] }}</td></tr>
-      {% else %}<tr><td colspan="5" class="text-center text-muted">Nenhuma bebida registrada.</td></tr>{% endfor %}
+    <div class="table-responsive"><table class="table table-hover align-middle"><thead><tr><th>Produto</th><th>Valor unit.</th><th>Saída</th><th>Retorno</th><th>Consumo</th><th>Perda</th><th>Vendido</th><th>Total estimado</th></tr></thead><tbody>
+      {% for p in itens if p[1]|lower == 'bebida' %}{% set vendido = [0, (p[2] or 0)-(p[3] or 0)-(p[6] or 0)-(p[4] or 0)]|max %}<tr><td><strong>{{ p[0] }}</strong></td><td>R$ {{ "%.2f"|format(p[8] or 0) }}</td><td>{{ p[2] }}</td><td>{{ p[3] }}</td><td>{{ p[6] }}</td><td>{{ p[4] }}</td><td><strong class="text-success">{{ vendido }}</strong></td><td>R$ {{ "%.2f"|format(vendido * (p[8] or 0)) }}</td></tr>
+      {% else %}<tr><td colspan="8" class="text-center text-muted">Nenhuma bebida registrada.</td></tr>{% endfor %}
     </tbody></table></div>
   </article>
   {% else %}<div class="alert alert-warning text-center">Nenhum relatório encontrado.</div>{% endfor %}
