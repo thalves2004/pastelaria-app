@@ -51,17 +51,27 @@
       {% endif %}
       {% set vendas.total = vendas.total + ((qtd_vendida|float) * ((p[8] or 0)|float)) %}
     {% endfor %}
-    {% set financeiro_ajustado = (faturamento_bruto|float) - ((c[34] or 0)|float) %}
-    {% set diferenca_vendas = financeiro_ajustado - vendas.total %}
+    {# O caixa inicial e o dinheiro acrescentado não são vendas. As despesas pagas durante a feira
+       são somadas de volta porque já saíram do dinheiro encontrado no fechamento. #}
+    {% set caixa_inicial_conferencia = (c[3] or 0)|float %}
+    {% set dinheiro_adicionado_conferencia = (c[34] or 0)|float %}
+    {% set descontos_conferencia = (c[21] or 0)|float %}
+    {% set vendas_produtos_liquidas = (vendas.total|float) - descontos_conferencia %}
+    {% set vendas_caixa = (faturamento_bruto|float) - caixa_inicial_conferencia - dinheiro_adicionado_conferencia %}
+    {% set diferenca_vendas = vendas_caixa - vendas_produtos_liquidas %}
     <section class="app-card mt-4 mb-4">
-      <div class="section-heading"><div><span class="section-icon">⚖️</span><div><h4>Conferência entre produtos e caixa</h4><p>Compara o valor calculado pelos itens vendidos com o movimento financeiro, retirando o dinheiro extra colocado no caixa.</p></div></div></div>
+      <div class="section-heading"><div><span class="section-icon">⚖️</span><div><h4>Diferença do caixa conforme as vendas</h4><p>Compara o valor que deveria ter entrado pelas quantidades vendidas com o valor realmente apurado no caixa.</p></div></div></div>
       <div class="metric-grid">
-        <div class="metric"><span>Vendas estimadas pelos produtos</span><strong>R$ {{ "%.2f"|format(vendas.total) }}</strong></div>
-        <div class="metric"><span>Faturamento financeiro ajustado</span><strong>R$ {{ "%.2f"|format(financeiro_ajustado) }}</strong></div>
-        <div class="metric"><span>Dinheiro adicionado ao caixa</span><strong>R$ {{ "%.2f"|format(c[34] or 0) }}</strong></div>
-        <div class="metric"><span>Diferença</span><strong class="{{ 'text-success' if diferenca_vendas == 0 else 'text-danger' }}">R$ {{ "%.2f"|format(diferenca_vendas) }}</strong></div>
+        <div class="metric"><span>Venda calculada pelos produtos</span><strong>R$ {{ "%.2f"|format(vendas.total) }}</strong></div>
+        <div class="metric"><span>Descontos concedidos</span><strong>R$ {{ "%.2f"|format(descontos_conferencia) }}</strong></div>
+        <div class="metric"><span>Venda esperada após descontos</span><strong>R$ {{ "%.2f"|format(vendas_produtos_liquidas) }}</strong></div>
+        <div class="metric"><span>Venda apurada pelo caixa</span><strong>R$ {{ "%.2f"|format(vendas_caixa) }}</strong></div>
+        <div class="metric"><span>Caixa inicial retirado da comparação</span><strong>R$ {{ "%.2f"|format(caixa_inicial_conferencia) }}</strong></div>
+        <div class="metric"><span>Dinheiro adicionado retirado da comparação</span><strong>R$ {{ "%.2f"|format(dinheiro_adicionado_conferencia) }}</strong></div>
+        <div class="metric"><span>Diferença do caixa</span><strong class="{{ 'text-success' if diferenca_vendas >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(diferenca_vendas) }}</strong></div>
+        <div class="metric"><span>Situação</span><strong class="{{ 'text-success' if diferenca_vendas >= 0 else 'text-danger' }}">{% if diferenca_vendas > 0.009 %}Sobra no caixa{% elif diferenca_vendas < -0.009 %}Falta no caixa{% else %}Caixa conferido{% endif %}</strong></div>
       </div>
-      <small class="text-muted d-block mt-3">Diferença positiva: o financeiro ficou acima das vendas calculadas. Diferença negativa: o financeiro ficou abaixo.</small>
+      <small class="text-muted d-block mt-3">Cálculo: venda apurada = faturamento bruto − caixa inicial − dinheiro adicionado. Diferença = venda apurada − venda esperada após descontos.</small>
     </section>
 
     <h5 class="mt-4">🥟 Pastéis, salgados e massa</h5>
