@@ -1,11 +1,12 @@
 from decimal import Decimal, InvalidOperation
 import json
+import os
 from flask import Flask, render_template, request, redirect, session
-from database import conectar, criar_banco, ORDEM_PRODUTOS
+from database import conectar, inicializar_banco_com_tentativas, ORDEM_PRODUTOS
 
 app = Flask(__name__)
-app.secret_key = "pastelcontrol123"
-criar_banco()
+app.secret_key = os.environ.get("SECRET_KEY", "pastelcontrol-dev-altere-em-producao")
+inicializar_banco_com_tentativas()
 
 
 def numero(nome):
@@ -100,6 +101,21 @@ def autenticado():
 
 def admin():
     return session.get("nivel") == "admin"
+
+
+@app.route("/health")
+def health():
+    """Verificação simples usada pelo Render para confirmar aplicação e banco."""
+    try:
+        conn = conectar()
+        cursor = conn.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        cursor.close()
+        conn.close()
+        return {"status": "ok", "database": "connected"}, 200
+    except Exception:
+        return {"status": "error", "database": "unavailable"}, 503
 
 
 @app.route("/", methods=["GET", "POST"])
@@ -275,7 +291,7 @@ def fechamento():
         total_apurado = m1 + m2 + m3 + m4 + dinheiro + pix
         # Despesas pagas durante a feira já saíram do caixa e não podem ser descontadas novamente.
         # Somente as diárias são pagas depois do fechamento.
-        total_liquido = total_apurado - diarias_total
+        total_liquido = total_apurado
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
@@ -584,7 +600,7 @@ def editar_relatorio(id):
         equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
         diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
         total_apurado = m1 + m2 + m3 + m4 + pix + dinheiro
-        caixa_final = total_apurado - diarias_total
+        caixa_final = total_apurado
 
         cursor.execute("""
             UPDATE controle SET

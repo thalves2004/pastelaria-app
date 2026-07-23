@@ -1,17 +1,38 @@
 import os
+import time
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
 import psycopg2
 import re
 import unicodedata
 
 
-def conectar():
-    """Retorna uma conexão PostgreSQL usando DATABASE_URL."""
-    database_url = os.environ.get("DATABASE_URL")
-    if not database_url:
-        raise RuntimeError("A variável DATABASE_URL não foi configurada.")
+def _preparar_database_url(database_url):
+    """Normaliza a URL e força SSL, necessário para conexões com o Supabase."""
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
-    return psycopg2.connect(database_url)
+
+    partes = urlsplit(database_url)
+    parametros = dict(parse_qsl(partes.query, keep_blank_values=True))
+    parametros.setdefault("sslmode", os.environ.get("DATABASE_SSLMODE", "require"))
+    parametros.setdefault("connect_timeout", "30")
+    return urlunsplit((partes.scheme, partes.netloc, partes.path, urlencode(parametros), partes.fragment))
+
+
+def conectar():
+    """Retorna uma conexão PostgreSQL usando DATABASE_URL (Render + Supabase)."""
+    database_url = (os.environ.get("DATABASE_URL") or "").strip()
+    if not database_url:
+        raise RuntimeError("A variável DATABASE_URL não foi configurada.")
+
+    return psycopg2.connect(
+        _preparar_database_url(database_url),
+        application_name="PastelControl",
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=5,
+    )
 
 
 get_connection = conectar
@@ -256,5 +277,21 @@ def criar_banco():
         conn.close()
 
 
+def inicializar_banco_com_tentativas(tentativas=5, espera=3):
+    """Inicializa o banco, tolerando alguns segundos de retomada do Supabase."""
+    ultimo_erro = None
+    for tentativa in range(1, tentativas + 1):
+        try:
+            criar_banco()
+            return
+        except psycopg2.OperationalError as erro:
+            ultimo_erro = erro
+            if tentativa == tentativas:
+                break
+            print(f"Banco indisponível (tentativa {tentativa}/{tentativas}). Nova tentativa em {espera}s...")
+            time.sleep(espera)
+    raise ultimo_erro
+
+
 if __name__ == "__main__":
-    criar_banco()
+    inicializar_banco_com_tentativas()
