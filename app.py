@@ -271,6 +271,34 @@ def abertura():
         )
         quantidades_atuais = {str(produto_id): quantidade or 0 for produto_id, quantidade in cursor.fetchall()}
 
+    # Retorno dos pastéis da última feira fechada. Serve apenas como referência
+    # e pode ser somado manualmente à abertura atual pelo botão da tela.
+    cursor.execute("""
+        SELECT id, data
+        FROM controle
+        WHERE UPPER(status)='FECHADO'
+        ORDER BY data DESC, id DESC
+        LIMIT 1
+    """)
+    ultima_feira = cursor.fetchone()
+    retorno_anterior = {}
+    data_ultima_feira = None
+    if ultima_feira:
+        data_ultima_feira = ultima_feira[1]
+        cursor.execute("""
+            SELECT p.id, p.nome, COALESCE(SUM(e.quantidade_final), 0)
+            FROM estoque e
+            JOIN produtos p ON p.id = e.produto_id
+            WHERE e.controle_id=%s
+              AND LOWER(p.categoria)='pastel'
+            GROUP BY p.id, p.nome
+            ORDER BY p.nome
+        """, (ultima_feira[0],))
+        retorno_anterior = {
+            str(produto_id): {"nome": nome, "quantidade": int(quantidade or 0)}
+            for produto_id, nome, quantidade in cursor.fetchall()
+        }
+
     cursor.execute("SELECT dia_semana,produto_id,quantidade FROM quantidades_padrao")
     padroes = {"terca": {}, "sabado": {}, "domingo": {}}
     for dia_semana, produto_id, quantidade in cursor.fetchall():
@@ -287,6 +315,8 @@ def abertura():
         editando=bool(controle_aberto),
         controle_aberto=controle_aberto,
         quantidades_atuais=quantidades_atuais,
+        retorno_anterior=retorno_anterior,
+        data_ultima_feira=data_ultima_feira,
         pasteis=[p for p in produtos if p[2].lower() == "pastel"],
         bebidas=[p for p in produtos if p[2].lower() == "bebida"],
     )

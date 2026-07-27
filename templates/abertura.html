@@ -61,6 +61,42 @@
 
     <section class="app-card mb-4">
       <div class="section-heading">
+        <div>
+          <span class="section-icon">↩️</span>
+          <div>
+            <h4>Retorno da última feira</h4>
+            <p>
+              {% if data_ultima_feira %}
+                Pastéis que retornaram da feira de {{ data_ultima_feira.strftime('%d/%m/%Y') if data_ultima_feira.strftime is defined else data_ultima_feira }}. Use como referência ou some à abertura de hoje.
+              {% else %}
+                Ainda não há uma feira fechada para consultar.
+              {% endif %}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {% set retorno_com_quantidade = retorno_anterior.values() | selectattr('quantidade', 'gt', 0) | list %}
+      {% if retorno_com_quantidade %}
+      <div class="opening-grid mb-3">
+        {% for item in retorno_com_quantidade %}
+        <div class="opening-item">
+          <span>{{ item.nome }}</span>
+          <strong>{{ item.quantidade }}</strong>
+        </div>
+        {% endfor %}
+      </div>
+      <button type="button" id="somar-retorno" class="btn btn-outline-primary w-100">
+        ➕ Somar retorno anterior aos pastéis de hoje
+      </button>
+      <div id="aviso-retorno" class="form-text mt-2"></div>
+      {% elif data_ultima_feira %}
+      <div class="alert alert-light border mb-0">Não houve retorno de pastéis na última feira.</div>
+      {% endif %}
+    </section>
+
+    <section class="app-card mb-4">
+      <div class="section-heading">
         <div><span class="section-icon">🥟</span><div><h4>Pastéis e salgados</h4><p>Quantidade que saiu para venda no início do dia.</p></div></div>
       </div>
       <div class="opening-grid">
@@ -104,6 +140,7 @@
 </div>
 <script>
 const padroes = {{ padroes | tojson }};
+const retornoAnterior = {{ retorno_anterior | tojson }};
 const hoje = new Date();
 const local = new Date(hoje.getTime() - hoje.getTimezoneOffset() * 60000).toISOString().split('T')[0];
 const campoData = document.getElementById('data');
@@ -122,6 +159,28 @@ function selecionarModeloDaData() {
 }
 selecionarModeloDaData();
 campoData.addEventListener('change', selecionarModeloDaData);
+
+const botaoSomarRetorno = document.getElementById('somar-retorno');
+if (botaoSomarRetorno) {
+  botaoSomarRetorno.addEventListener('click', () => {
+    let totalSomado = 0;
+    Object.entries(retornoAnterior).forEach(([produtoId, item]) => {
+      const quantidade = Number(item.quantidade || 0);
+      const input = document.getElementById(`produto_${produtoId}`);
+      if (input && quantidade > 0) {
+        input.value = Number(input.value || 0) + quantidade;
+        totalSomado += quantidade;
+      }
+    });
+    atualizarTotal();
+    const aviso = document.getElementById('aviso-retorno');
+    if (aviso) {
+      aviso.textContent = totalSomado > 0
+        ? `${totalSomado} pastel(is) do retorno anterior foram somados à abertura.`
+        : 'Não há retorno de pastéis para somar.';
+    }
+  });
+}
 
 document.getElementById('aplicar-padrao').addEventListener('click', () => {
   const dia = modeloDia.value;
