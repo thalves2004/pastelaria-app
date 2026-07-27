@@ -24,9 +24,9 @@ def inteiro(nome):
         return 0
 
 
-def ler_equipe_formulario():
-    nomes = request.form.getlist("funcionario_nome[]")
-    valores = request.form.getlist("funcionario_diaria[]")
+def ler_lista_diarias(campo_nome, campo_valor):
+    nomes = request.form.getlist(campo_nome)
+    valores = request.form.getlist(campo_valor)
     equipe = []
     for nome, valor in zip(nomes, valores):
         nome = (nome or "").strip()
@@ -38,6 +38,16 @@ def ler_equipe_formulario():
             diaria = 0.0
         equipe.append({"nome": nome, "diaria": max(0, diaria)})
     return equipe
+
+
+def ler_equipe_formulario():
+    # Diárias registradas apenas para controle, sem desconto do caixa.
+    return ler_lista_diarias("funcionario_nome[]", "funcionario_diaria[]")
+
+
+def ler_diarias_caixa_formulario():
+    # Diárias que devem ser descontadas do valor final do caixa.
+    return ler_lista_diarias("diaria_caixa_nome[]", "diaria_caixa_valor[]")
 
 
 
@@ -194,40 +204,99 @@ def quantidades_padrao():
 
 @app.route("/abertura", methods=["GET", "POST"])
 def abertura():
-    if not autenticado(): return redirect("/")
-    conn = conectar(); cursor = conn.cursor()
+    if not autenticado():
+        return redirect("/")
+
+    conn = conectar()
+    cursor = conn.cursor()
     cursor.execute("SELECT id,nome,categoria,COALESCE(valor,0) FROM produtos ORDER BY categoria,nome")
     produtos = ordenar_produtos(cursor.fetchall(), 1)
+
+    cursor.execute("""
+        SELECT id,data,caixa_inicial
+        FROM controle
+        WHERE UPPER(status)='ABERTO'
+        ORDER BY id DESC LIMIT 1
+    """)
+    controle_aberto = cursor.fetchone()
+
     if request.method == "POST":
-        cursor.execute("SELECT COUNT(*) FROM controle WHERE UPPER(status)='ABERTO'")
-        if cursor.fetchone()[0] > 0:
-            cursor.close(); conn.close(); return redirect("/fechamento")
-        cursor.execute("""
-            INSERT INTO controle (data,usuario,caixa_inicial,status)
-            VALUES (%s,%s,%s,'ABERTO') RETURNING id
-        """, (request.form.get("data"), session["usuario"], numero("caixa") if admin() else Decimal("0")))
-        controle_id = cursor.fetchone()[0]
-        for produto in produtos:
-            cursor.execute("INSERT INTO producao (controle_id,produto_id,quantidade,valor_unitario) VALUES (%s,%s,%s,%s)",
-                           (controle_id, produto[0], inteiro(f"produto_{produto[0]}"), produto[3] or 0))
-        conn.commit(); cursor.close(); conn.close()
+        data = request.form.get("data")
+        caixa_inicial = numero("caixa") if admin() else Decimal("0")
+
+        if controle_aberto:
+            controle_id = controle_aberto[0]
+            if admin():
+                cursor.execute(
+                    "UPDATE controle SET data=%s, caixa_inicial=%s WHERE id=%s",
+                    (data, caixa_inicial, controle_id),
+                )
+            else:
+                cursor.execute("UPDATE controle SET data=%s WHERE id=%s", (data, controle_id))
+
+            for produto in produtos:
+                quantidade = inteiro(f"produto_{produto[0]}")
+                cursor.execute("""
+                    UPDATE producao
+                    SET quantidade=%s
+                    WHERE controle_id=%s AND produto_id=%s
+                """, (quantidade, controle_id, produto[0]))
+                if cursor.rowcount == 0:
+                    cursor.execute("""
+                        INSERT INTO producao (controle_id,produto_id,quantidade,valor_unitario)
+                        VALUES (%s,%s,%s,%s)
+                    """, (controle_id, produto[0], quantidade, produto[3] or 0))
+        else:
+            cursor.execute("""
+                INSERT INTO controle (data,usuario,caixa_inicial,status)
+                VALUES (%s,%s,%s,'ABERTO') RETURNING id
+            """, (data, session["usuario"], caixa_inicial))
+            controle_id = cursor.fetchone()[0]
+            for produto in produtos:
+                cursor.execute("""
+                    INSERT INTO producao (controle_id,produto_id,quantidade,valor_unitario)
+                    VALUES (%s,%s,%s,%s)
+                """, (controle_id, produto[0], inteiro(f"produto_{produto[0]}"), produto[3] or 0))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
         return redirect("/dashboard")
+
+    quantidades_atuais = {}
+    if controle_aberto:
+        cursor.execute(
+            "SELECT produto_id,quantidade FROM producao WHERE controle_id=%s",
+            (controle_aberto[0],),
+        )
+        quantidades_atuais = {str(produto_id): quantidade or 0 for produto_id, quantidade in cursor.fetchall()}
+
     cursor.execute("SELECT dia_semana,produto_id,quantidade FROM quantidades_padrao")
     padroes = {"terca": {}, "sabado": {}, "domingo": {}}
     for dia_semana, produto_id, quantidade in cursor.fetchall():
         if dia_semana in padroes:
             padroes[dia_semana][str(produto_id)] = quantidade or 0
-    cursor.close(); conn.close()
-    return render_template("abertura.html", produtos=produtos, padroes=padroes, is_admin=admin(),
-                           pasteis=[p for p in produtos if p[2].lower() == "pastel"],
-                           bebidas=[p for p in produtos if p[2].lower() == "bebida"])
+
+    cursor.close()
+    conn.close()
+    return render_template(
+        "abertura.html",
+        produtos=produtos,
+        padroes=padroes,
+        is_admin=admin(),
+        editando=bool(controle_aberto),
+        controle_aberto=controle_aberto,
+        quantidades_atuais=quantidades_atuais,
+        pasteis=[p for p in produtos if p[2].lower() == "pastel"],
+        bebidas=[p for p in produtos if p[2].lower() == "bebida"],
+    )
 
 
 @app.route("/fechamento", methods=["GET", "POST"])
 def fechamento():
     if not autenticado(): return redirect("/")
     conn = conectar(); cursor = conn.cursor()
-    cursor.execute("SELECT id,data,caixa_inicial FROM controle WHERE UPPER(status)='ABERTO' ORDER BY id DESC LIMIT 1")
+    cursor.execute("SELECT id,data,caixa_inicial,COALESCE(observacoes,'') FROM controle WHERE UPPER(status)='ABERTO' ORDER BY id DESC LIMIT 1")
     controle = cursor.fetchone()
     if not controle:
         cursor.close(); conn.close(); return redirect("/abertura")
@@ -281,17 +350,23 @@ def fechamento():
             equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
             equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
             diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
+            diarias_caixa = ler_diarias_caixa_formulario()
+            diarias_caixa_detalhes = json.dumps(diarias_caixa, ensure_ascii=False)
+            diarias_caixa_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in diarias_caixa)
+            observacoes = (request.form.get("observacoes") or "").strip()
         else:
             # Funcionários registram apenas a movimentação dos produtos.
             # Nenhum valor financeiro é exibido ou recebido pelo formulário.
             m1 = m2 = m3 = m4 = pix = troco_total = dinheiro_grande = dinheiro = Decimal("0")
             descontos = dinheiro_adicionado = despesas_durante_total = diarias_total = Decimal("0")
-            despesas_detalhes = equipe_detalhes = "[]"
+            diarias_caixa_total = Decimal("0")
+            despesas_detalhes = equipe_detalhes = diarias_caixa_detalhes = "[]"
             equipe_dia = ""
+            observacoes = (request.form.get("observacoes") or "").strip()
         total_apurado = m1 + m2 + m3 + m4 + dinheiro + pix
-        # Despesas pagas durante a feira já saíram do caixa e não podem ser descontadas novamente.
-        # Somente as diárias são pagas depois do fechamento.
-        total_liquido = total_apurado
+        # Apenas as diárias marcadas como "pagas pelo caixa" reduzem o caixa final.
+        # As diárias de controle continuam registradas sem desconto.
+        total_liquido = total_apurado - diarias_caixa_total
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
@@ -301,17 +376,19 @@ def fechamento():
                 descontos=%s,fornecedores=0,seguranca=0,outras_despesas=0,
                 despesas_detalhes=%s,despesas_durante_total=%s,
                 equipe_dia=%s,equipe_detalhes=%s,diarias_total=%s,
+                diarias_caixa_detalhes=%s,diarias_caixa_total=%s,observacoes=%s,
                 dinheiro_adicionado=%s, status='FECHADO' WHERE id=%s
         """, (total_liquido,m1,m2,m3,m4,dinheiro,pix,troco_total,dinheiro_grande,
               total_sobra_pasteis,total_consumo_pasteis,
               descontos,despesas_detalhes,despesas_durante_total,equipe_dia,equipe_detalhes,
-              diarias_total,dinheiro_adicionado,controle[0]))
+              diarias_total,diarias_caixa_detalhes,diarias_caixa_total,observacoes,
+              dinheiro_adicionado,controle[0]))
         conn.commit(); cursor.close(); conn.close()
         return redirect("/dashboard")
 
     cursor.close(); conn.close()
     return render_template("fechamento.html", produtos=produtos, pasteis=pasteis, bebidas=bebidas,
-                           data=controle[1], caixa_inicial=controle[2], is_admin=admin())
+                           data=controle[1], caixa_inicial=controle[2], observacoes=controle[3], is_admin=admin())
 
 
 @app.route("/movimentacao")
@@ -489,7 +566,8 @@ def relatorios():
         moedas,dinheiro_grande,sobra_pasteis,consumo_pasteis,descontos,fornecedores,
         seguranca,outras_despesas,troco_total,dinheiro_50,dinheiro_100,dinheiro_200,
         equipe_dia,equipe_detalhes,diarias_total,despesas_detalhes,despesas_durante_total,
-        dinheiro_adicionado FROM controle
+        dinheiro_adicionado,COALESCE(observacoes,''),COALESCE(diarias_caixa_detalhes,'[]'),
+        COALESCE(diarias_caixa_total,0) FROM controle
     """
     if data_filtro:
         cursor.execute(sql + " WHERE data=%s ORDER BY id DESC", (data_filtro,))
@@ -515,7 +593,8 @@ def relatorios():
             controle[23] if len(controle) > 23 else 0,
             controle[24] if len(controle) > 24 else 0,
         )
-        relatorios.append((controle,itens,equipe,despesas))
+        diarias_caixa = decodificar_equipe(controle[36] if len(controle) > 36 else "[]")
+        relatorios.append((controle,itens,equipe,despesas,diarias_caixa))
     cursor.close(); conn.close()
     return render_template("relatorios.html", relatorios=relatorios, data_filtro=data_filtro)
 
@@ -599,8 +678,12 @@ def editar_relatorio(id):
         equipe_dia = ", ".join(pessoa["nome"] for pessoa in equipe)
         equipe_detalhes = json.dumps(equipe, ensure_ascii=False)
         diarias_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in equipe)
+        diarias_caixa = ler_diarias_caixa_formulario()
+        diarias_caixa_detalhes = json.dumps(diarias_caixa, ensure_ascii=False)
+        diarias_caixa_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in diarias_caixa)
+        observacoes = (request.form.get("observacoes") or "").strip()
         total_apurado = m1 + m2 + m3 + m4 + pix + dinheiro
-        caixa_final = total_apurado
+        caixa_final = total_apurado - diarias_caixa_total
 
         cursor.execute("""
             UPDATE controle SET
@@ -610,13 +693,16 @@ def editar_relatorio(id):
                 sobra_pasteis=%s, consumo_pasteis=%s, descontos=%s,
                 fornecedores=0, seguranca=0, outras_despesas=0,
                 despesas_detalhes=%s, despesas_durante_total=%s, equipe_dia=%s,
-                equipe_detalhes=%s, diarias_total=%s, dinheiro_adicionado=%s
+                equipe_detalhes=%s, diarias_total=%s,
+                diarias_caixa_detalhes=%s, diarias_caixa_total=%s, observacoes=%s,
+                dinheiro_adicionado=%s
             WHERE id=%s
         """, (
             caixa_final, m1, m2, m3, m4, dinheiro, pix, troco_total,
             dinheiro_grande, total_sobra_pasteis, total_consumo_pasteis,
             descontos, despesas_detalhes, despesas_durante_total, equipe_dia,
-            equipe_detalhes, diarias_total, dinheiro_adicionado, id,
+            equipe_detalhes, diarias_total, diarias_caixa_detalhes, diarias_caixa_total,
+            observacoes, dinheiro_adicionado, id,
         ))
         conn.commit()
         cursor.close()
@@ -632,7 +718,9 @@ def editar_relatorio(id):
                         COALESCE(dinheiro_50, 0) + COALESCE(dinheiro_100, 0) + COALESCE(dinheiro_200, 0)),
                COALESCE(equipe_dia, ''), COALESCE(equipe_detalhes, '[]'),
                COALESCE(diarias_total, 0), COALESCE(despesas_detalhes, '[]'),
-               COALESCE(despesas_durante_total, 0), COALESCE(dinheiro_adicionado, 0)
+               COALESCE(despesas_durante_total, 0), COALESCE(dinheiro_adicionado, 0),
+               COALESCE(observacoes, ''), COALESCE(diarias_caixa_detalhes, '[]'),
+               COALESCE(diarias_caixa_total, 0)
         FROM controle WHERE id=%s
     """, (id,))
     controle = cursor.fetchone()
@@ -643,9 +731,10 @@ def editar_relatorio(id):
         controle[14] if len(controle) > 14 else 0,
         controle[15] if len(controle) > 15 else 0,
     )
+    diarias_caixa = decodificar_equipe(controle[25] if len(controle) > 25 else "[]")
     cursor.close()
     conn.close()
-    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas, equipe=equipe, despesas=despesas)
+    return render_template("editar_relatorio.html", controle=controle, itens=itens, pasteis=pasteis, bebidas=bebidas, equipe=equipe, despesas=despesas, diarias_caixa=diarias_caixa)
 
 
 @app.route("/excluir_relatorio/<int:id>")

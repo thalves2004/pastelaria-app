@@ -232,6 +232,9 @@ def criar_banco():
             "despesas_detalhes": "TEXT DEFAULT '[]'",
             "despesas_durante_total": "NUMERIC(12,2) DEFAULT 0",
             "dinheiro_adicionado": "NUMERIC(12,2) DEFAULT 0",
+            "observacoes": "TEXT DEFAULT ''",
+            "diarias_caixa_detalhes": "TEXT DEFAULT '[]'",
+            "diarias_caixa_total": "NUMERIC(12,2) DEFAULT 0",
         }
         for nome, tipo in colunas_controle.items():
             cursor.execute(f"ALTER TABLE controle ADD COLUMN IF NOT EXISTS {nome} {tipo}")

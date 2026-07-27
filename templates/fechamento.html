@@ -75,10 +75,16 @@
         <small class="text-muted">Use quando for colocado dinheiro extra no caixa. Esse valor ficará registrado para a conferência das vendas.</small>
       </section></div>
 
-      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">👥</span><div><h4>Equipe e diárias</h4><p>As diárias serão descontadas somente depois do fechamento.</p></div></div></div>
+      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">👥</span><div><h4>Diárias sem desconto do caixa</h4><p>Registre as diárias apenas para controle. Esses valores não reduzem o caixa final.</p></div></div></div>
         <div id="lista-equipe"></div>
         <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="adicionar-pessoa">+ Adicionar pessoa</button>
         <div class="inline-total"><span>Total das diárias</span><strong>R$ <span id="total-diarias">0,00</span></strong></div>
+      </section></div>
+
+      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">💸</span><div><h4>Diárias pagas pelo caixa</h4><p>Essas diárias serão descontadas do valor final do caixa.</p></div></div></div>
+        <div id="lista-diarias-caixa"></div>
+        <button type="button" class="btn btn-outline-danger btn-sm mb-3" id="adicionar-diaria-caixa">+ Adicionar diária paga pelo caixa</button>
+        <div class="inline-total"><span>Total descontado do caixa</span><strong>R$ <span id="total-diarias-caixa">0,00</span></strong></div>
       </section></div>
 
       <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">🧾</span><div><h4>Despesas pagas durante a feira</h4><p>Registre fornecedor, gás, segurança ou qualquer outro pagamento. Esses valores já saíram do caixa e não serão descontados novamente.</p></div></div></div>
@@ -89,12 +95,16 @@
       </section></div>
 
       <div class="col-lg-6"><section class="summary-card h-100"><span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span><h4 class="mb-4">Conferência do fechamento</h4>
-        <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total encontrado no fechamento</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Faturamento bruto</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line expense"><span>Diárias a pagar após fechar</span><strong>- R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-final"><span>Resultado líquido</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
+        <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total encontrado no fechamento</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Faturamento bruto</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line"><span>Diárias sem desconto</span><strong>R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-line expense"><span>Diárias pagas pelo caixa</span><strong>- R$ <span id="resumo-diarias-caixa">0,00</span></strong></div><div class="summary-final"><span>Caixa final</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
       </section></div>
     </div>
     {% else %}
     <div class="alert alert-info mt-4">🔒 Fechamento operacional: registre apenas retorno, consumo, brindes, sobras e perdas. Os dados financeiros serão preenchidos pelo administrador.</div>
     {% endif %}
+    <section class="app-card mt-4">
+      <div class="section-heading"><div><span class="section-icon">📝</span><div><h4>Observações do dia</h4><p>Registre acontecimentos, faltas, problemas, mudanças ou qualquer informação importante.</p></div></div></div>
+      <textarea class="form-control" name="observacoes" rows="5" maxlength="2000" placeholder="Digite aqui as observações do dia...">{{ observacoes or '' }}</textarea>
+    </section>
     <button class="btn btn-danger btn-lg w-100 mt-4 py-3" type="submit" onclick="return confirm('Confirma o fechamento do caixa?')">🔒 Finalizar fechamento</button>
   </form>
 </div>
@@ -123,10 +133,12 @@ function totalizar(){
   const pix=valor('pix');
   const dinheiro=['troco_total','dinheiro_grande'].reduce((s,id)=>s+valor(id),0);
   const diarias=[...document.querySelectorAll('.valor-diaria')].reduce((s,e)=>s+Number(e.value||0),0);
+  const diariasCaixa=[...document.querySelectorAll('.valor-diaria-caixa')].reduce((s,e)=>s+Number(e.value||0),0);
   const despesasFeira=[...document.querySelectorAll('.valor-despesa-feira')].reduce((s,e)=>s+Number(e.value||0),0);
   document.getElementById('total-diarias').textContent=moeda(diarias);
+  document.getElementById('total-diarias-caixa').textContent=moeda(diariasCaixa);
   document.getElementById('total-despesas-feira').textContent=moeda(despesasFeira);
-  const apurado=maquinas+pix+dinheiro, faturamento=apurado+despesasFeira, liquido=apurado-diarias;
+  const apurado=maquinas+pix+dinheiro, faturamento=apurado+despesasFeira, liquido=apurado-diariasCaixa;
   document.getElementById('total-dinheiro').textContent=moeda(dinheiro);
   document.getElementById('resumo-maquinas').textContent=moeda(maquinas);
   document.getElementById('resumo-pix').textContent=moeda(pix);
@@ -135,6 +147,7 @@ function totalizar(){
   document.getElementById('resumo-despesas-feira').textContent=moeda(despesasFeira);
   document.getElementById('faturamento-estimado').textContent=moeda(faturamento);
   document.getElementById('total-despesas').textContent=moeda(diarias);
+  document.getElementById('resumo-diarias-caixa').textContent=moeda(diariasCaixa);
   document.getElementById('total-liquido').textContent=moeda(liquido);
 }
 function adicionarPessoa(nome='', diaria=''){
@@ -144,6 +157,13 @@ function adicionarPessoa(nome='', diaria=''){
   linha.querySelector('.valor-diaria').addEventListener('input',totalizar);
   document.getElementById('lista-equipe').appendChild(linha);
 }
+function adicionarDiariaCaixa(nome='', diaria=''){
+  const linha=document.createElement('div'); linha.className='row g-2 align-items-end mb-2 diaria-caixa-linha';
+  linha.innerHTML=`<div class="col-7"><label>Nome</label><input class="form-control" name="diaria_caixa_nome[]" value="${nome}" placeholder="Nome da pessoa" required></div><div class="col-4"><label>Valor da diária</label><div class="money-input"><span>R$</span><input class="form-control valor-diaria-caixa" type="number" step="0.01" min="0" name="diaria_caixa_valor[]" value="${diaria}"></div></div><div class="col-1"><button type="button" class="btn btn-outline-danger w-100 remover-diaria-caixa">×</button></div>`;
+  linha.querySelector('.remover-diaria-caixa').onclick=()=>{linha.remove();totalizar()};
+  linha.querySelector('.valor-diaria-caixa').addEventListener('input',totalizar);
+  document.getElementById('lista-diarias-caixa').appendChild(linha);
+}
 function adicionarDespesa(nome='', valorDespesa=''){
   const linha=document.createElement('div'); linha.className='row g-2 align-items-end mb-2 despesa-linha';
   linha.innerHTML=`<div class="col-7"><label>Descrição</label><input class="form-control" name="despesa_nome[]" value="${nome}" placeholder="Ex.: gás, fornecedor, segurança" required></div><div class="col-4"><label>Valor pago</label><div class="money-input"><span>R$</span><input class="form-control valor-despesa-feira" type="number" step="0.01" min="0" name="despesa_valor[]" value="${valorDespesa}"></div></div><div class="col-1"><button type="button" class="btn btn-outline-danger w-100 remover-despesa">×</button></div>`;
@@ -152,8 +172,9 @@ function adicionarDespesa(nome='', valorDespesa=''){
   document.getElementById('lista-despesas').appendChild(linha);
 }
 document.getElementById('adicionar-pessoa').onclick=()=>adicionarPessoa();
+document.getElementById('adicionar-diaria-caixa').onclick=()=>adicionarDiariaCaixa();
 document.getElementById('adicionar-despesa').onclick=()=>adicionarDespesa();
-adicionarPessoa(); adicionarDespesa();
+adicionarPessoa(); adicionarDiariaCaixa(); adicionarDespesa();
 document.querySelectorAll('.valor-caixa').forEach(el=>el.addEventListener('input',totalizar));
 totalizar();
 {% endif %}
