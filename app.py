@@ -46,7 +46,9 @@ def ler_equipe_formulario():
 
 
 def ler_diarias_caixa_formulario():
-    # Diárias que devem ser descontadas do valor final do caixa.
+    # Diárias que já foram pagas com dinheiro retirado do caixa durante a feira.
+    # Elas são registradas para reconstruir o faturamento bruto, mas não são
+    # descontadas novamente do valor contado no fechamento.
     return ler_lista_diarias("diaria_caixa_nome[]", "diaria_caixa_valor[]")
 
 

@@ -66,8 +66,9 @@
         <h6 class="subheading">Troco — valores até R$ 20</h6>
         <label for="troco_total">Valor total do troco</label><div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="troco_total" id="troco_total" value="0" class="form-control valor-caixa dinheiro-campo"></div>
         <h6 class="subheading mt-4">Dinheiro — notas de R$ 50, R$ 100 e R$ 200</h6>
-        <label for="dinheiro_grande">Valor total das notas maiores</label>
+        <label for="dinheiro_grande">Valor das notas maiores que restaram no fechamento</label>
         <div class="money-input"><span>R$</span><input type="number" step="0.01" min="0" name="dinheiro_grande" id="dinheiro_grande" value="0" class="form-control valor-caixa dinheiro-campo"></div>
+        <small class="text-muted">Informe somente o valor que ainda está no caixa. Valores usados para pagar diárias ou despesas devem ser registrados nas listas abaixo e não podem ser somados novamente aqui.</small>
         <div class="inline-total mt-3"><span>Total em dinheiro</span><strong>R$ <span id="total-dinheiro">0,00</span></strong></div>
         <hr class="my-4">
         <label for="dinheiro_adicionado">Dinheiro adicionado ao caixa durante a feira</label>
@@ -81,10 +82,10 @@
         <div class="inline-total"><span>Total das diárias</span><strong>R$ <span id="total-diarias">0,00</span></strong></div>
       </section></div>
 
-      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">💸</span><div><h4>Diárias pagas pelo caixa</h4><p>Essas diárias serão descontadas do valor final do caixa.</p></div></div></div>
+      <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">💸</span><div><h4>Diárias pagas pelo caixa</h4><p>Registre valores que já foram retirados do caixa. Eles não serão descontados novamente; serão usados apenas para reconstruir o faturamento bruto.</p></div></div></div>
         <div id="lista-diarias-caixa"></div>
         <button type="button" class="btn btn-outline-danger btn-sm mb-3" id="adicionar-diaria-caixa">+ Adicionar diária paga pelo caixa</button>
-        <div class="inline-total"><span>Total descontado do caixa</span><strong>R$ <span id="total-diarias-caixa">0,00</span></strong></div>
+        <div class="inline-total"><span>Total pago pelo caixa</span><strong>R$ <span id="total-diarias-caixa">0,00</span></strong></div>
       </section></div>
 
       <div class="col-lg-6"><section class="app-card h-100"><div class="section-heading"><div><span class="section-icon">🧾</span><div><h4>Despesas pagas durante a feira</h4><p>Registre fornecedor, gás, segurança ou qualquer outro pagamento. Esses valores já saíram do caixa e não serão descontados novamente.</p></div></div></div>
@@ -95,7 +96,7 @@
       </section></div>
 
       <div class="col-lg-6"><section class="summary-card h-100"><span class="eyebrow text-white-50">RESUMO AUTOMÁTICO</span><h4 class="mb-4">Conferência do fechamento</h4>
-        <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total encontrado no fechamento</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Faturamento bruto</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line"><span>Diárias sem desconto</span><strong>R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-line expense"><span>Diárias pagas pelo caixa</span><strong>- R$ <span id="resumo-diarias-caixa">0,00</span></strong></div><div class="summary-final"><span>Caixa final</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
+        <div class="summary-line"><span>Máquinas</span><strong>R$ <span id="resumo-maquinas">0,00</span></strong></div><div class="summary-line"><span>PIX</span><strong>R$ <span id="resumo-pix">0,00</span></strong></div><div class="summary-line"><span>Dinheiro encontrado</span><strong>R$ <span id="resumo-dinheiro">0,00</span></strong></div><div class="summary-line"><span>Total encontrado no fechamento</span><strong>R$ <span id="total-bruto">0,00</span></strong></div><div class="summary-line"><span>Despesas já pagas</span><strong>R$ <span id="resumo-despesas-feira">0,00</span></strong></div><div class="summary-line"><span>Diárias pagas pelo caixa</span><strong>R$ <span id="resumo-diarias-caixa">0,00</span></strong></div><div class="summary-line"><span>Faturamento bruto estimado</span><strong>R$ <span id="faturamento-estimado">0,00</span></strong></div><div class="summary-line"><span>Diárias sem desconto (informativo)</span><strong>R$ <span id="total-despesas">0,00</span></strong></div><div class="summary-final"><span>Caixa final (valor realmente encontrado)</span><strong>R$ <span id="total-liquido">0,00</span></strong></div>
       </section></div>
     </div>
     {% else %}
@@ -138,7 +139,7 @@ function totalizar(){
   document.getElementById('total-diarias').textContent=moeda(diarias);
   document.getElementById('total-diarias-caixa').textContent=moeda(diariasCaixa);
   document.getElementById('total-despesas-feira').textContent=moeda(despesasFeira);
-  const apurado=maquinas+pix+dinheiro, faturamento=apurado+despesasFeira, liquido=apurado-diariasCaixa;
+  const apurado=maquinas+pix+dinheiro, faturamento=apurado+despesasFeira+diariasCaixa, liquido=apurado;
   document.getElementById('total-dinheiro').textContent=moeda(dinheiro);
   document.getElementById('resumo-maquinas').textContent=moeda(maquinas);
   document.getElementById('resumo-pix').textContent=moeda(pix);

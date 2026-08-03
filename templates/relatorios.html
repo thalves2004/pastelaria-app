@@ -20,14 +20,14 @@
     </div>
 
     {% set total_encontrado = (c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)+(c[9] or 0)+(c[10] or 0) %}
-    {% set faturamento_bruto = (total_encontrado|float) + ((c[33] or 0)|float) %}
+    {% set faturamento_bruto = (total_encontrado|float) + ((c[33] or 0)|float) + ((c[37] or 0)|float) %}
     <div class="metric-grid mt-4">
       <div class="metric"><span>Caixa inicial</span><strong>R$ {{ "%.2f"|format(c[3] or 0) }}</strong></div>
       <div class="metric"><span>Total encontrado no fechamento</span><strong>R$ {{ "%.2f"|format(total_encontrado) }}</strong></div>
       <div class="metric"><span>Despesas pagas durante a feira</span><strong>R$ {{ "%.2f"|format(c[33] or 0) }}</strong></div>
       <div class="metric"><span>Faturamento bruto</span><strong>R$ {{ "%.2f"|format(faturamento_bruto) }}</strong></div>
       <div class="metric"><span>Diárias sem desconto</span><strong>R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div><div class="metric"><span>Diárias pagas pelo caixa</span><strong>R$ {{ "%.2f"|format(c[37] or 0) }}</strong></div>
-      <div class="metric"><span>Resultado líquido</span><strong>R$ {{ "%.2f"|format(c[4] or 0) }}</strong></div>
+      <div class="metric"><span>Caixa final (valor encontrado)</span><strong>R$ {{ "%.2f"|format(c[4] or 0) }}</strong></div>
       <div class="metric"><span>Máquinas</span><strong>R$ {{ "%.2f"|format((c[5] or 0)+(c[6] or 0)+(c[7] or 0)+(c[8] or 0)) }}</strong></div>
       <div class="metric"><span>PIX</span><strong>R$ {{ "%.2f"|format(c[10] or 0) }}</strong></div>
       <div class="metric"><span>Dinheiro</span><strong>R$ {{ "%.2f"|format(c[9] or 0) }}</strong></div>
@@ -38,7 +38,7 @@
       <div class="row g-3 mt-1">
         <div class="col-md-6"><div class="detail-box"><h6>Dinheiro em caixa</h6><p>Troco até R$ 20: <strong>R$ {{ "%.2f"|format(c[25] or 0) }}</strong></p><p>Notas de R$ 50, R$ 100 e R$ 200: <strong>R$ {{ "%.2f"|format((c[18] or 0) if (c[18] or 0) > 0 else ((c[26] or 0)+(c[27] or 0)+(c[28] or 0))) }}</strong></p><p class="mb-0">Dinheiro adicionado ao caixa: <strong>R$ {{ "%.2f"|format(c[34] or 0) }}</strong></p></div></div>
         <div class="col-md-6"><div class="detail-box"><h6>Diárias sem desconto do caixa</h6>{% if equipe %}<ul class="mb-2">{% for pessoa in equipe %}<li>{{ pessoa.nome }} — R$ {{ "%.2f"|format(pessoa.diaria or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma pessoa registrada.</p>{% endif %}<strong>Total das diárias: R$ {{ "%.2f"|format(c[31] or 0) }}</strong></div></div>
-        <div class="col-md-6"><div class="detail-box"><h6>Diárias pagas pelo caixa</h6>{% if diarias_caixa %}<ul class="mb-2">{% for pessoa in diarias_caixa %}<li>{{ pessoa.nome }} — R$ {{ "%.2f"|format(pessoa.diaria or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma diária paga pelo caixa.</p>{% endif %}<strong>Total descontado: R$ {{ "%.2f"|format(c[37] or 0) }}</strong></div></div>
+        <div class="col-md-6"><div class="detail-box"><h6>Diárias pagas pelo caixa</h6>{% if diarias_caixa %}<ul class="mb-2">{% for pessoa in diarias_caixa %}<li>{{ pessoa.nome }} — R$ {{ "%.2f"|format(pessoa.diaria or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma diária paga pelo caixa.</p>{% endif %}<strong>Total retirado para diárias: R$ {{ "%.2f"|format(c[37] or 0) }}</strong><p class="mt-2 mb-0 text-muted">Esse valor é somado de volta somente no faturamento bruto; não é descontado novamente do caixa final.</p></div></div>
         <div class="col-md-6"><div class="detail-box"><h6>Despesas pagas durante a feira</h6>{% if despesas %}<ul class="mb-2">{% for despesa in despesas %}<li>{{ despesa.nome }} — R$ {{ "%.2f"|format(despesa.valor or 0) }}</li>{% endfor %}</ul>{% else %}<p class="text-muted">Nenhuma despesa registrada.</p>{% endif %}<strong>Total já pago: R$ {{ "%.2f"|format(c[33] or 0) }}</strong><p class="mt-2 mb-0">Descontos informados: R$ {{ "%.2f"|format(c[21] or 0) }}</p></div></div>
       </div>
     </details>
@@ -53,8 +53,8 @@
       {% endif %}
       {% set vendas.total = vendas.total + ((qtd_vendida|float) * ((p[8] or 0)|float)) %}
     {% endfor %}
-    {# O caixa inicial e o dinheiro acrescentado não são vendas. As despesas pagas durante a feira
-       são somadas de volta porque já saíram do dinheiro encontrado no fechamento. #}
+    {# O caixa inicial e o dinheiro acrescentado não são vendas. As despesas e as diárias
+       pagas pelo caixa são somadas de volta porque já saíram do valor encontrado. #}
     {% set caixa_inicial_conferencia = (c[3] or 0)|float %}
     {% set dinheiro_adicionado_conferencia = (c[34] or 0)|float %}
     {% set descontos_conferencia = (c[21] or 0)|float %}
@@ -73,7 +73,7 @@
         <div class="metric"><span>Diferença do caixa</span><strong class="{{ 'text-success' if diferenca_vendas >= 0 else 'text-danger' }}">R$ {{ "%.2f"|format(diferenca_vendas) }}</strong></div>
         <div class="metric"><span>Situação</span><strong class="{{ 'text-success' if diferenca_vendas >= 0 else 'text-danger' }}">{% if diferenca_vendas > 0.009 %}Sobra no caixa{% elif diferenca_vendas < -0.009 %}Falta no caixa{% else %}Caixa conferido{% endif %}</strong></div>
       </div>
-      <small class="text-muted d-block mt-3">Cálculo: venda apurada = faturamento bruto − caixa inicial − dinheiro adicionado. Diferença = venda apurada − venda esperada após descontos.</small>
+      <small class="text-muted d-block mt-3">Cálculo: venda apurada = faturamento bruto estimado − caixa inicial − dinheiro adicionado. Diferença = venda apurada − venda esperada após descontos.</small>
     </section>
 
     <h5 class="mt-4">🥟 Pastéis, salgados e massa</h5>

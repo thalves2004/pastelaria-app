@@ -1,0 +1,9 @@
+PASTELCONTROL V18 - REGRA DO CAIXA
+
+1. Troco e notas maiores: informe somente o dinheiro que restou fisicamente no fechamento.
+2. Se R$ 600 foram retirados das notas maiores para pagar diárias, informe:
+   - Notas maiores restantes: R$ 200
+   - Diárias pagas pelo caixa: R$ 600
+3. Caixa final = máquinas + PIX + dinheiro que restou.
+4. Faturamento bruto estimado = caixa final + despesas já pagas + diárias pagas pelo caixa.
+5. Diárias e despesas não são descontadas novamente do caixa final.
