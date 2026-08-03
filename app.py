@@ -394,9 +394,10 @@ def fechamento():
             equipe_dia = ""
             observacoes = (request.form.get("observacoes") or "").strip()
         total_apurado = m1 + m2 + m3 + m4 + dinheiro + pix
-        # Apenas as diárias marcadas como "pagas pelo caixa" reduzem o caixa final.
-        # As diárias de controle continuam registradas sem desconto.
-        total_liquido = total_apurado - diarias_caixa_total
+        # O caixa final representa exatamente o valor encontrado no fechamento.
+        # Despesas e diárias pagas pelo caixa já foram retiradas fisicamente
+        # e não podem ser descontadas novamente.
+        total_liquido = total_apurado
 
         cursor.execute("""
             UPDATE controle SET caixa_final=%s,maquina1=%s,maquina2=%s,maquina3=%s,
@@ -713,7 +714,9 @@ def editar_relatorio(id):
         diarias_caixa_total = sum(Decimal(str(pessoa["diaria"])) for pessoa in diarias_caixa)
         observacoes = (request.form.get("observacoes") or "").strip()
         total_apurado = m1 + m2 + m3 + m4 + pix + dinheiro
-        caixa_final = total_apurado - diarias_caixa_total
+        # Mantém no relatório o valor realmente encontrado no fechamento.
+        # Diárias pagas pelo caixa já saíram do dinheiro contado.
+        caixa_final = total_apurado
 
         cursor.execute("""
             UPDATE controle SET
